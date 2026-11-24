@@ -302,7 +302,7 @@ function tableau(id,nom,src){
   const nbJours=new Set(L.map(l=>l.t.slice(0,10))).size;
   let h=`<div class="bloc"><div class="bloc-titre">${nom}<span>${src.lieu?src.lieu+" · ":""}${src.erreur?"site non lu":nbJours+" jours"}</span></div><div class="defile" data-id="${id}">`;
   if(!L.length) return h+`<div class="err" style="margin:8px">Ce site n'a pas pu être lu cette fois-ci.</div></div></div>`;
-  h+=`<table class="mc"><thead><tr class="tete"><td rowspan="2">Jour</td><td rowspan="2">Heure</td><td rowspan="2">Temp.</td><td colspan="${avecDir?3:2}">Vent km/h</td><td rowspan="2">Pluie<br>sur 3h</td>${avecHum?`<td rowspan="2">Humidité</td>`:""}<td rowspan="2">Temps</td></tr><tr class="tete">${avecDir?"<td>dir.</td>":""}<td>moy.</td><td>raf.</td></tr></thead><tbody>`;
+  h+=`<table class="mc"><thead><tr class="tete"><td rowspan="2">Jour</td><td rowspan="2">Heure</td><td rowspan="2">Temp.</td><td colspan="${avecDir?3:2}">Vent km/h</td><td rowspan="2">Pluie<br>sur 3h</td>${avecHum?`<td rowspan="2" title="Humidité">Hum.</td>`:""}<td rowspan="2">Temps</td></tr><tr class="tete">${avecDir?"<td>dir.</td>":""}<td>moy.</td><td>raf.</td></tr></thead><tbody>`;
   const parJour={}; L.forEach(l=>{const j=l.t.slice(0,10); parJour[j]=(parJour[j]||0)+1;});
   const v5=x=>x==null?"--":Math.round(x/5)*5;
   let prec="", n=-1;
@@ -319,7 +319,7 @@ function tableau(id,nom,src){
       `<td class="c" style="background:${x.moy==null?"transparent":cm}">${v5(x.moy)}</td>`+
       (x.raf==null?`<td class="c">${x.raf_txt||"--"}</td>`:`<td class="c" style="background:${cr}">${v5(x.raf)}</td>`)+
       (cp?`<td class="c" style="background:${cp};color:${texteSur(cp)}">${x.pluie.toFixed(1)} mm</td>`:celluleNiveau(x.pluie_txt))+
-      (!avecHum?"":x.hum==null?(x.hum_txt?`<td class="c" style="background:${HUMS[x.hum_txt]}">${x.hum_txt}</td>`:`<td class="c">--</td>`):`<td class="c" style="background:${couleurHum(x.hum)}">${Math.round(x.hum)} %</td>`)+
+      (!avecHum?"":x.hum==null?(x.hum_txt?`<td class="c" style="background:${HUMS[x.hum_txt]}">${x.hum_txt}</td>`:`<td class="c">--</td>`):`<td class="c" style="background:${couleurHum(x.hum)}">${Math.round(x.hum)}%</td>`)+
       `<td class="ico" title="${(x.ciel||"").replace(/[<>&"]/g,"")}">${icone(x.code,t.getHours())}</td></tr>`;
   });
   return h+`</tbody></table></div></div>`;
