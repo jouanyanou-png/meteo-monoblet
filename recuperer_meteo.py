@@ -246,8 +246,8 @@ def meteofrance():
     with sync_playwright() as p:
         b = p.chromium.launch()
         pg = b.new_page(locale="fr-FR", user_agent=UA)
-        pg.goto(URL_MF, wait_until="networkidle", timeout=60000)
-        pg.wait_for_selector("#atmogramme_time_picker li.day", timeout=30000)
+        pg.goto(URL_MF, wait_until="domcontentloaded", timeout=90000)
+        pg.wait_for_selector("#atmogramme_time_picker li.day", timeout=60000)
         aujourdhui = pg.inner_html("#atmogramme_time_picker")
         # fenetre des cookies : on refuse, sinon on la retire de la page
         try:
@@ -403,9 +403,19 @@ def uniformiser(points=(), periodes=(), jours=(), rafales_cachees_si_faibles=Fal
 
 def main():
     resultat = {"maj": dt.datetime.now().isoformat(timespec="minutes"), "sources": {}}
+    # lecture precedente : si un site rate, on garde sa derniere bonne lecture
+    try:
+        t = SORTIE.read_text(encoding="utf-8")
+        avant = json.loads(t[t.index("=") + 1:].strip().rstrip(";"))
+    except Exception:
+        avant = {"sources": {}}
     for nom, f in [("meteociel", meteociel), ("meteofrance", meteofrance), ("agricole", agricole), ("languedoc", languedoc)]:
         try:
-            brut = f()
+            try:
+                brut = f()
+            except Exception as e1:
+                print(f"{nom}: 1er essai rate ({e1}), on reessaie", file=sys.stderr)
+                brut = f()
             lignes = uniformiser(brut.get("points", ()), brut.get("periodes", ()), brut.get("jours", ()),
                                  rafales_cachees_si_faibles=(nom == "meteofrance"))
             resultat["sources"][nom] = {"lignes": lignes, "lieu": brut.get("lieu")}
@@ -415,6 +425,14 @@ def main():
             traceback.print_exc()
             resultat["sources"][nom] = {"erreur": f"{type(e).__name__}: {e}"}
             print(f"{nom}: ERREUR {e}", file=sys.stderr)
+            vieux = avant.get("sources", {}).get(nom, {})
+            if vieux.get("lignes"):
+                limite = (dt.datetime.now() - dt.timedelta(hours=3)).isoformat(timespec="minutes")
+                garde = [l for l in vieux["lignes"] if l["t"] >= limite]
+                if garde:
+                    resultat["sources"][nom] = {"lignes": garde, "lieu": vieux.get("lieu"),
+                                                "ancien": vieux.get("ancien") or avant.get("maj")}
+                    print(f"{nom}: on garde la lecture de {resultat['sources'][nom]['ancien']}")
     js = "window.DONNEES = " + json.dumps(resultat, ensure_ascii=False).replace("<", "\\u003c") + ";\n"
     SORTIE.write_text(js, encoding="utf-8")
     print("Ecrit :", SORTIE)

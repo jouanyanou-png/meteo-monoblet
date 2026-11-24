@@ -36,11 +36,11 @@ jobs:
           git config user.name "meteo-bot"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           for i in 1 2 3 4 5; do
+            git fetch -q origin main && git reset -q --hard origin/main   # repartir de la derniere version
             timeout 600 python recuperer_meteo.py || echo "lecture ratee, on continue"
             git add donnees.js
             if ! git diff --cached --quiet; then
               git commit -m "Meteo du $(date '+%d/%m %Hh%M')"
-              git pull --rebase -q || git rebase --abort
               git push || echo "envoi rate"
             fi
             [ $i -lt 5 ] && sleep 3540

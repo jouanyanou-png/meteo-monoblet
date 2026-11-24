@@ -215,7 +215,7 @@ function tableau(id,nom,src){
   const L=src.lignes||[];
   const avecHum=id==="meteociel", avecDir=id==="meteociel";  // humidité et direction du vent seulement pour Meteociel
   const nbJours=new Set(L.map(l=>l.t.slice(0,10))).size;
-  let h=`<div class="bloc"><div class="bloc-titre">${nom}<span>${src.lieu?src.lieu+" · ":""}${src.erreur?"site non lu":nbJours+" jours"}</span></div><div class="defile" data-id="${id}">`;
+  let h=`<div class="bloc"><div class="bloc-titre">${nom}<span>${src.lieu?src.lieu+" · ":""}${src.erreur?"site non lu":nbJours+" jours"}${src.ancien?" · lu à "+src.ancien.slice(11,16).replace(":","h"):""}</span></div><div class="defile" data-id="${id}">`;
   if(!L.length) return h+`<div class="err" style="margin:8px">Ce site n'a pas pu être lu cette fois-ci.</div></div></div>`;
   h+=`<table class="mc"><thead><tr class="tete"><td rowspan="2">Jour</td><td rowspan="2">Heure</td><td rowspan="2">Temp.</td><td colspan="${avecDir?3:2}">Vent km/h</td><td rowspan="2">Pluie<br>sur 3h</td>${avecHum?`<td rowspan="2" title="Humidité">Hum.</td>`:""}<td rowspan="2">Temps</td></tr><tr class="tete">${avecDir?"<td>dir.</td>":""}<td>moy.</td><td>raf.</td></tr></thead><tbody>`;
   const parJour={}; L.forEach(l=>{const j=l.t.slice(0,10); parJour[j]=(parJour[j]||0)+1;});
