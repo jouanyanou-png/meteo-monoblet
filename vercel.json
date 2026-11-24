@@ -1,0 +1,6 @@
+{
+  "rewrites": [{ "source": "/", "destination": "/meteo.html" }],
+  "headers": [
+    { "source": "/donnees.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
+  ]
+}

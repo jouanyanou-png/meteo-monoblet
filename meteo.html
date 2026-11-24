@@ -1,0 +1,374 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Météo Monoblet</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&display=swap">
+<style>
+/* Une seule colonne, l'info la plus utile en haut, très gros, couleurs qui ont un sens */
+:root{
+  --bg:#eef3f6; --card:#ffffff; --fg:#1c2a33; --muted:#5b6b75;
+  --pluie:#2f6fd6; --soleil:#e8a100; --froid:#3a9ad9; --chaud:#e0572e;
+  --ok:#1f9d55; --non:#d13b3b; --bof:#e08a00; --line:#d5dee4;
+  --font:"Atkinson Hyperlegible",Verdana,Arial,sans-serif;
+}
+@media (prefers-color-scheme:dark){:root{
+  --bg:#121a20; --card:#1c262e; --fg:#eef3f6; --muted:#9fb0bb; --line:#2c3a44;
+  --pluie:#6aa3ff; --ok:#43c57d; --non:#ff6b6b; --bof:#ffb340; color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-size:20px;line-height:1.4}
+.wrap{max-width:760px;margin:0 auto;padding:16px;display:flex;flex-direction:column;gap:18px}
+#contenu{display:flex;flex-direction:column;gap:18px}
+.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.top h1{margin:0;font-size:1.4rem}
+.maj{color:var(--muted);font-size:.9rem}
+.versions{display:flex;gap:8px;flex-wrap:wrap}
+.versions button{font:inherit;font-size:1rem;padding:10px 16px;border-radius:12px;border:2px solid var(--line);background:var(--card);color:var(--fg);cursor:pointer}
+.versions button[aria-pressed="true"]{border-color:var(--pluie);background:var(--pluie);color:#fff;font-weight:700}
+.card{background:var(--card);border-radius:20px;padding:20px}
+.big{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.big .ico{font-size:5.5rem;line-height:1}
+.big .temp{font-size:4.5rem;font-weight:700;line-height:1}
+.big .phrase{font-size:1.5rem;font-weight:700}
+.big .sub{color:var(--muted)}
+.verdicts{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.v{border-radius:16px;padding:14px;text-align:center;color:#fff;font-weight:700}
+.v .i{font-size:2.4rem;display:block}
+.v.ok{background:var(--ok)} .v.non{background:var(--non)} .v.bof{background:var(--bof)}
+.heures{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;align-items:end;height:150px}
+.h{display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;font-size:.8rem;gap:2px}
+.h .bar{width:100%;background:var(--pluie);border-radius:6px 6px 0 0;min-height:2px}
+.h .t{font-weight:700}
+.titre{margin:0 0 12px;font-size:1.2rem}
+.jours{display:flex;flex-direction:column;gap:6px}
+.j{display:grid;grid-template-columns:5.5em 2.4em 1fr 5em;align-items:center;gap:12px;padding:10px 4px;border-bottom:1px solid var(--line)}
+.j:last-child{border-bottom:0}
+.j .nom{font-weight:700}
+.j .ic{font-size:2rem}
+.plage{position:relative;height:14px;background:var(--line);border-radius:7px}
+.plage span{position:absolute;top:0;bottom:0;border-radius:7px;background:linear-gradient(90deg,var(--froid),var(--soleil),var(--chaud))}
+.mm{text-align:right;color:var(--pluie);font-weight:700}
+.mm.sec{color:var(--muted);font-weight:400}
+.minmax{display:flex;justify-content:space-between;font-size:.85rem;color:var(--muted);margin-top:2px}
+.avis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.a{text-align:center;border:2px solid var(--line);border-radius:16px;padding:12px 6px}
+.a .src{font-size:.85rem;color:var(--muted)}
+.a .ic{font-size:2.6rem}
+.a .tt{font-weight:700;font-size:1.2rem}
+.accord{margin-top:12px;padding:12px;border-radius:14px;font-weight:700;text-align:center;color:#fff}
+.liens{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+.liens a{display:block;text-align:center;padding:16px;border-radius:14px;background:var(--card);color:var(--fg);text-decoration:none;font-weight:700;border:2px solid var(--line)}
+.liens a:hover,.liens a:focus-visible{border-color:var(--pluie);outline:none}
+.err{background:var(--non);color:#fff;padding:16px;border-radius:14px}
+.note{color:var(--muted);font-size:.85rem;text-align:center}
+.wrap.large{max-width:none}
+.scroll{overflow-x:auto}
+.quatre{display:grid;grid-template-columns:repeat(4,max-content);justify-content:center;gap:10px}
+.bloc{background:#fff;min-width:0}
+.bloc-titre{background:#fff;color:#000066;font-family:Verdana,Arial,Helvetica,sans-serif;font-weight:bold;font-size:13px;padding:6px 4px;display:flex;justify-content:space-between;align-items:baseline;gap:8px}
+.bloc-titre span{font-weight:normal;font-size:11px}
+.defile{max-height:calc(100vh - 190px);overflow:auto}
+.defile thead{position:sticky;top:0;z-index:1}
+.defile table.mc{font-size:12px}
+.defile .mc td{padding:2px;height:20px}
+.defile .mc td.ico svg{width:26px;height:19px}
+.defile .mc td.dir svg{width:16px;height:16px}
+.barre4{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:.85rem;color:var(--muted)}
+.barre4 label{cursor:pointer;color:var(--fg)}
+/* Look Meteociel (valeurs reprises de leur code) */
+table.mc{border-collapse:collapse;font-family:Verdana,Arial,Helvetica,sans-serif;font-size:12px;color:#000066;margin:0 auto;background:#fff}
+.mc td{border:1px solid #a0a0b0;padding:2px;white-space:nowrap}
+.mc tr.tete td{background:#aaaaff;text-align:center;font-weight:normal}
+.mc tr.tete td.mod{font-weight:bold}
+.mc .sep{border-left:3px solid #6666cc}
+.mc td.jour{text-align:center;vertical-align:middle}
+.mc td.c{text-align:center}
+.mc td.ico{text-align:center;padding:0 2px}
+.mc td.ico svg,.mc td.dir svg{display:block;margin:auto}
+@media (max-width:520px){
+  body{font-size:18px}
+  .avis{grid-template-columns:repeat(2,1fr)}
+  .verdicts{grid-template-columns:1fr}
+  .j{grid-template-columns:4.5em 2em 1fr 3.8em;gap:8px}
+  .heures .h:nth-child(even) .t{visibility:hidden}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div><h1>Météo Monoblet</h1><div class="maj" id="maj">Chargement…</div></div>
+    <div class="versions" role="group" aria-label="Choisir la version">
+      <button data-v="4">4 · Tableau</button>
+      <button data-v="1">1 · Coup d'œil</button>
+      <button data-v="2">2 · Semaine</button>
+      <button data-v="3">3 · Les 4 avis</button>
+    </div>
+  </div>
+  <div id="contenu"></div>
+  <div class="liens">
+    <a href="https://www.meteociel.fr/previsions/10265/monoblet.htm" target="_blank" rel="noopener">Meteociel</a>
+    <a href="https://meteofrance.com/previsions-meteo-france/monoblet/30170" target="_blank" rel="noopener">Météo-France</a>
+    <a href="https://www.lameteoagricole.net/meteo-heure-par-heure/monoblet-30170.html" target="_blank" rel="noopener">Météo Agricole</a>
+    <a href="https://www.meteolanguedoc.com/" target="_blank" rel="noopener">Météo Languedoc</a>
+  </div>
+  <div class="note">Tableau : chiffres lus sur les 4 sites toutes les heures par le programme recuperer_meteo.py. Versions 1 à 3 : Open-Meteo.</div>
+</div>
+<script src="donnees.js"></script>
+<script>
+const LAT=43.996, LON=3.888;
+const MODELES=[["meteofrance_seamless","Météo-France"],["ecmwf_ifs025","Européen"],["icon_seamless","Allemand"],["gfs_seamless","Américain"]];
+const JOURS=["Dim.","Lun.","Mar.","Mer.","Jeu.","Ven.","Sam."];
+
+function meteo(c){
+  if(c==0) return ["☀️","Grand soleil"];
+  if(c<=2) return ["🌤️","Plutôt beau"];
+  if(c==3) return ["☁️","Gris"];
+  if(c==45||c==48) return ["🌫️","Brouillard"];
+  if(c>=51&&c<=57) return ["🌦️","Bruine"];
+  if(c==80) return ["🌦️","Averses"];
+  if(c==61) return ["🌦️","Petite pluie"];
+  if(c==81) return ["🌧️","Averses"];
+  if(c==63) return ["🌧️","Pluie"];
+  if(c==82) return ["🌧️","Fortes averses"];
+  if(c==65||c==66||c==67) return ["🌧️","Forte pluie"];
+  if(c>=71&&c<=77||c==85||c==86) return ["❄️","Neige"];
+  if(c>=95) return ["⛈️","Orage"];
+  return ["❓","Inconnu"];
+}
+const r1=x=>Math.round(x);
+
+let data=null, comp=null, horaire=null;
+let version="4";
+try{version=localStorage.getItem("version")||"4"}catch(e){}
+
+async function charger(){
+  try{
+    const base="https://api.open-meteo.com/v1/forecast?latitude="+LAT+"&longitude="+LON+"&timezone=Europe%2FParis";
+    const [a,b,h]=await Promise.all([
+      fetch(base+"&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m&hourly=temperature_2m,precipitation,precipitation_probability&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max&forecast_days=7").then(r=>r.json()),
+      fetch(base+"&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&models="+MODELES.map(m=>m[0]).join(",")+"&forecast_days=2").then(r=>r.json()),
+      fetch(base+"&hourly=temperature_2m,precipitation,wind_speed_10m,wind_direction_10m,wind_gusts_10m,weather_code,relative_humidity_2m&models="+MODELES.map(m=>m[0]).join(",")+"&forecast_days=4").then(r=>r.json())
+    ]);
+    data=a; comp=b; horaire=h;
+    document.getElementById("maj").textContent="Mis à jour à "+new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+    afficher();
+  }catch(e){
+    document.getElementById("contenu").innerHTML='<div class="err">Pas de connexion internet. Utilise les boutons en bas pour aller sur les sites.</div>';
+    document.getElementById("maj").textContent="Pas de données";
+  }
+}
+
+function prochainesHeures(){
+  const now=new Date(data.current.time); const t=data.hourly.time;
+  let i=t.findIndex(x=>new Date(x)>=now); if(i<0)i=0; i=Math.max(0,i-1);
+  return Array.from({length:12},(_,k)=>i+k).filter(k=>k<t.length);
+}
+
+function verdicts(){
+  const hs=prochainesHeures();
+  const pluie=hs.reduce((s,k)=>s+data.hourly.precipitation[k],0);
+  const proba=Math.max(...hs.map(k=>data.hourly.precipitation_probability[k]||0));
+  const ressenti=data.current.apparent_temperature;
+  const para= pluie>=1||proba>=60 ? ["non","☂️","Parapluie : OUI"] : proba>=30 ? ["bof","🌂","Parapluie : peut-être"] : ["ok","😎","Parapluie : non"];
+  const linge= pluie>=0.3||proba>=40 ? ["non","👕","Linge dehors : NON"] : proba>=20 ? ["bof","👕","Linge : risqué"] : ["ok","👕","Linge dehors : OUI"];
+  const manteau= ressenti<8 ? ["non","🧥","Gros manteau"] : ressenti<15 ? ["bof","🧥","Petite veste"] : ["ok","👚","Pas de veste"];
+  return [para,linge,manteau];
+}
+
+function v1(){
+  const c=data.current, [ico,txt]=meteo(c.weather_code), d=data.daily;
+  const [icoJ,txtJ]=meteo(d.weather_code[0]);
+  const hs=prochainesHeures();
+  const max=Math.max(2,...hs.map(k=>data.hourly.precipitation[k]));
+  return `
+  <div class="card big">
+    <div class="ico">${ico}</div>
+    <div>
+      <div class="temp">${r1(c.temperature_2m)}°</div>
+      <div class="sub">ressenti ${r1(c.apparent_temperature)}°</div>
+    </div>
+    <div>
+      <div class="phrase">Maintenant : ${txt}</div>
+      <div class="sub">Aujourd'hui : ${txtJ} ${icoJ} · ${r1(d.temperature_2m_min[0])}° à ${r1(d.temperature_2m_max[0])}°</div>
+    </div>
+  </div>
+  <div class="verdicts">${verdicts().map(v=>`<div class="v ${v[0]}"><span class="i">${v[1]}</span>${v[2]}</div>`).join("")}</div>
+  <div class="card">
+    <h2 class="titre">Pluie dans les 12 prochaines heures</h2>
+    <div class="heures">${hs.map(k=>{
+      const p=data.hourly.precipitation[k], h=new Date(data.hourly.time[k]).getHours();
+      return `<div class="h"><span>${p>0?p.toFixed(1):""}</span><div class="bar" style="height:${(p/max)*100}%"></div><span class="t">${h}h</span></div>`}).join("")}</div>
+  </div>`;
+}
+
+function v2(){
+  const d=data.daily;
+  const lo=Math.min(...d.temperature_2m_min), hi=Math.max(...d.temperature_2m_max), span=Math.max(1,hi-lo);
+  return `<div class="card"><h2 class="titre">Les 7 prochains jours</h2><div class="jours">${d.time.map((t,i)=>{
+    const [ic,tx]=meteo(d.weather_code[i]); const date=new Date(t);
+    const nom=i==0?"Auj.":i==1?"Demain":JOURS[date.getDay()];
+    const g=(d.temperature_2m_min[i]-lo)/span*100, w=(d.temperature_2m_max[i]-d.temperature_2m_min[i])/span*100;
+    const mm=d.precipitation_sum[i];
+    return `<div class="j"><div class="nom">${nom}</div><div class="ic" title="${tx}">${ic}</div>
+      <div><div class="plage"><span style="left:${g}%;width:${Math.max(w,4)}%"></span></div>
+      <div class="minmax"><span>${r1(d.temperature_2m_min[i])}°</span><span>${r1(d.temperature_2m_max[i])}°</span></div></div>
+      <div class="mm ${mm<0.2?"sec":""}">${mm<0.2?"sec":"💧"+r1(mm)+" mm"}</div></div>`}).join("")}</div></div>`;
+}
+
+function v3(){
+  const bloc=(i,titre)=>{
+    const vals=MODELES.map(([id,nom])=>({nom,code:comp.daily["weather_code_"+id]?.[i],max:comp.daily["temperature_2m_max_"+id]?.[i],min:comp.daily["temperature_2m_min_"+id]?.[i],mm:comp.daily["precipitation_sum_"+id]?.[i]})).filter(v=>v.code!=null);
+    const pluvieux=vals.filter(v=>v.mm>=1).length, ecart=Math.max(...vals.map(v=>v.max))-Math.min(...vals.map(v=>v.max));
+    const daccord=(pluvieux==0||pluvieux==vals.length)&&ecart<=3;
+    const msg=daccord?(pluvieux? "✔ Tous d'accord : il va pleuvoir":"✔ Tous d'accord : pas de pluie"):"⚠ Pas d'accord : regarde Meteociel en bas";
+    return `<div class="card"><h2 class="titre">${titre}</h2><div class="avis">${vals.map(v=>{const [ic,tx]=meteo(v.code);
+      return `<div class="a"><div class="src">${v.nom}</div><div class="ic" title="${tx}">${ic}</div><div class="tt">${r1(v.min)}° / ${r1(v.max)}°</div><div class="mm ${v.mm<0.2?"sec":""}">${v.mm<0.2?"sec":"💧"+r1(v.mm)+" mm"}</div></div>`}).join("")}</div>
+      <div class="accord" style="background:var(${daccord?"--ok":"--bof"})">${msg}</div></div>`;
+  };
+  return bloc(0,"Aujourd'hui")+bloc(1,"Demain");
+}
+
+// Couleurs reprises du code de Meteociel (valeurs brutes, pas arrondies)
+function couleurTemp(t){
+  const pal=[[-99,"#CC99FF"],[-3,"#9999FF"],[-1,"#99CCFF"],[1,"#66FFFF"],[3,"#66FF99"],[5,"#66FF66"],[7,"#66FF00"],[9,"#BFFA0E"],[11,"#FFFF09"],[13,"#FFD700"],[15,"#FFB000"],[17,"#FF9900"],[20,"#FF6600"],[25,"#FF3300"],[30,"#CC0000"]];
+  let c=pal[0][1]; for(const [s,col] of pal) if(t>=s) c=col; return c;
+}
+function couleurMoy(v){v=v??0;
+  if(v<2.5) return "#FFFFFF"; if(v<7.5) return "#97E6FF"; if(v<12.5) return "#33CCFF"; if(v<20) return "#0099FF"; if(v<30) return "#00FF99"; if(v<40) return "#FFFF09"; return "#FF9900";}
+function couleurRaf(v){v=v??0;
+  if(v<2.5) return "#FFFFFF"; if(v<10) return "#97E6FF"; if(v<22.5) return "#33CCFF"; if(v<32.5) return "#0099FF"; if(v<45) return "#00FF99"; if(v<60) return "#FFFF09"; return "#FF9900";}
+function couleurPluie(mm){
+  if(mm<0.2) return null; if(mm<1) return "#aaffff"; if(mm<2) return "#88d8d8"; if(mm<3.5) return "#55cccc"; return "#0050aa";}
+function couleurHum(h){
+  if(h<50) return "#aaaab0"; if(h<65) return "#a0a0a0"; if(h<75) return "#959595"; if(h<85) return "#909090"; if(h<95) return "#858585"; return "#808080";}
+const texteSur=c=>["#0050aa","#CC0000"].includes(c)?"#ffffff":"#000066";
+function fleche(dir){ // flèche noire, 16 directions comme Meteociel, pointe là où va le vent
+  const a=Math.round((dir??0)/22.5)*22.5;
+  return `<svg width="18" height="18" viewBox="0 0 18 18" style="transform:rotate(${a}deg)"><path d="M9 17 L3.5 10.5 H7 V1 H11 V10.5 H14.5 Z" fill="#000"/></svg>`;
+}
+
+// Icônes météo dessinées (dégradés définis une seule fois dans DEFS_ICONES)
+const DEFS_ICONES=`<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+<radialGradient id="gSoleil" cx="40%" cy="35%" r="65%"><stop offset="0" stop-color="#fff6b0"/><stop offset=".55" stop-color="#ffd21f"/><stop offset="1" stop-color="#f29d00"/></radialGradient>
+<linearGradient id="gNuageClair" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#c9d3dc"/></linearGradient>
+<linearGradient id="gNuageGris" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b9bfc5"/><stop offset="1" stop-color="#6e767d"/></linearGradient>
+<linearGradient id="gNuageSombre" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9aa2aa"/><stop offset="1" stop-color="#4f5860"/></linearGradient>
+<radialGradient id="gLune" cx="35%" cy="35%" r="70%"><stop offset="0" stop-color="#fffbe6"/><stop offset="1" stop-color="#d9cf9e"/></radialGradient>
+</defs></svg>`;
+function icone(code,heure){
+  const nuit=heure<7||heure>=19;
+  const soleil=(x,y,r)=>`<g stroke="#f2a900" stroke-width="1.6" stroke-linecap="round">${[0,45,90,135,180,225,270,315].map(a=>{const c=Math.cos(a*Math.PI/180),s=Math.sin(a*Math.PI/180);return `<line x1="${x+c*(r+2)}" y1="${y+s*(r+2)}" x2="${x+c*(r+5)}" y2="${y+s*(r+5)}"/>`}).join("")}</g><circle cx="${x}" cy="${y}" r="${r}" fill="url(#gSoleil)" stroke="#e08e00" stroke-width=".6"/>`;
+  const lune=(x,y,r)=>`<path d="M${x+r*.3} ${y-r} a${r} ${r} 0 1 0 ${r*.75} ${r*1.55} a${r*.8} ${r*.8} 0 1 1 ${-r*.75} ${-r*1.55}z" fill="url(#gLune)" stroke="#b8ad7a" stroke-width=".6"/>`;
+  const astre=(x,y,r)=>nuit?lune(x,y,r*1.15):soleil(x,y,r);
+  // nuage : 3 bosses + base plate, ombre douce dessous
+  const nuage=(dx,dy,sc,g)=>`<g transform="translate(${dx} ${dy}) scale(${sc})"><path d="M7 21 h19 a5 5 0 0 0 .6-9.96 A7.5 7.5 0 0 0 12.4 9.3 A5.2 5.2 0 0 0 7 21z" fill="#000" opacity=".12" transform="translate(.8 1.2)"/><path d="M7 21 h19 a5 5 0 0 0 .6-9.96 A7.5 7.5 0 0 0 12.4 9.3 A5.2 5.2 0 0 0 7 21z" fill="url(#${g})" stroke="#6f7880" stroke-width=".7"/></g>`;
+  const gouttes=(n,y0)=>Array.from({length:n},(_,k)=>{const x=11+k*(16/Math.max(1,n-1||1));return `<line x1="${x+1.5}" y1="${y0}" x2="${x-1}" y2="${y0+5}" stroke="#1f6fe0" stroke-width="1.8" stroke-linecap="round"/>`}).join("");
+  const flocons=y0=>[11,18,25].map(x=>`<g stroke="#5aa0e8" stroke-width="1.1" stroke-linecap="round"><line x1="${x-2}" y1="${y0}" x2="${x+2}" y2="${y0}"/><line x1="${x}" y1="${y0-2}" x2="${x}" y2="${y0+2}"/><line x1="${x-1.5}" y1="${y0-1.5}" x2="${x+1.5}" y2="${y0+1.5}"/><line x1="${x-1.5}" y1="${y0+1.5}" x2="${x+1.5}" y2="${y0-1.5}"/></g>`).join("");
+  const eclair=`<path d="M19 19 l-4 6 h3.2 l-2.2 5 6.5-7.2 h-3.4 l2.4-3.8z" fill="#ffd21f" stroke="#c98a00" stroke-width=".6"/>`;
+  let d;
+  if(code==0) d=astre(18,15,7);
+  else if(code==1) d=astre(13,11,6)+nuage(6,5,.75,"gNuageClair");
+  else if(code==2) d=astre(11,10,6)+nuage(3,3,.95,"gNuageClair");
+  else if(code==3) d=nuage(-1,-4,.8,"gNuageClair")+nuage(4,1,.95,"gNuageGris");
+  else if(code==45||code==48) d=nuage(1,-3,.95,"gNuageGris")+`<g stroke="#9aa3ab" stroke-width="2" stroke-linecap="round"><line x1="5" y1="22" x2="31" y2="22"/><line x1="8" y1="26" x2="28" y2="26"/></g>`;
+  else if(code>=51&&code<=57) d=nuage(1,-3,1,"gNuageGris")+gouttes(2,21);
+  else if(code==61) d=nuage(1,-3,1,"gNuageGris")+gouttes(2,21);
+  else if(code==63) d=nuage(1,-3,1,"gNuageGris")+gouttes(3,21);
+  else if(code==65||code==66||code==67) d=nuage(1,-3,1,"gNuageSombre")+gouttes(4,21);
+  else if(code==80) d=astre(11,9,6)+nuage(3,-1,.95,"gNuageClair")+gouttes(2,22);
+  else if(code==81) d=astre(11,9,6)+nuage(3,-1,.95,"gNuageGris")+gouttes(3,22);
+  else if(code==82) d=astre(11,9,6)+nuage(3,-1,.95,"gNuageSombre")+gouttes(4,22);
+  else if((code>=71&&code<=77)||code==85||code==86) d=nuage(1,-3,1,"gNuageGris")+flocons(24);
+  else if(code>=95) d=nuage(1,-4,1,"gNuageSombre")+gouttes(2,21).replace(/x1="(\d)/,'x1="$1')+eclair;
+  else d=nuage(1,0,1,"gNuageGris");
+  const nom=meteo(code)[1];
+  return `<svg width="34" height="28" viewBox="0 0 36 30" role="img" aria-label="${nom}"><title>${nom}</title>${d}</svg>`;
+}
+
+const SOURCES=[["meteociel","Meteociel"],["meteofrance","Météo-France"],["agricole","Météo Agricole"],["languedoc","Météo Languedoc"]];
+let ensemble=false; try{ensemble=localStorage.getItem("ensemble")==="1"}catch(e){}
+// pluie sans mm (Météo-France, Météo Languedoc) : niveau lu dans le ciel, mêmes couleurs que les mm
+const NIVEAUX={"faible":"#aaffff","modérée":"#55cccc","forte":"#0050aa","orage":"#0050aa","neige":"#ffffff"};
+const HUMS={"très humide":"#808080","humide":"#909090","moyen":"#a0a0a0","sec":"#aaaab0"};
+function celluleNiveau(n){
+  if(!n||n==="sec") return `<td class="c">--</td>`;
+  const c=NIVEAUX[n]; return `<td class="c" style="background:${c};color:${texteSur(c)}">${n}</td>`;
+}
+function tableau(id,nom,src){
+  const L=src.lignes||[];
+  const nbJours=new Set(L.map(l=>l.t.slice(0,10))).size;
+  let h=`<div class="bloc"><div class="bloc-titre">${nom}<span>${src.lieu?src.lieu+" · ":""}${src.erreur?"site non lu":nbJours+" jours"}</span></div><div class="defile" data-id="${id}">`;
+  if(!L.length) return h+`<div class="err" style="margin:8px">Ce site n'a pas pu être lu cette fois-ci.</div></div></div>`;
+  h+=`<table class="mc"><thead><tr class="tete"><td rowspan="2">Jour</td><td rowspan="2">Heure</td><td rowspan="2">Temp.</td><td colspan="3">Vent km/h</td><td rowspan="2">Pluie<br>sur 3h</td><td rowspan="2">Humidité</td><td rowspan="2">Temps</td></tr><tr class="tete"><td>dir.</td><td>moy.</td><td>raf.</td></tr></thead><tbody>`;
+  const parJour={}; L.forEach(l=>{const j=l.t.slice(0,10); parJour[j]=(parJour[j]||0)+1;});
+  const v5=x=>x==null?"--":Math.round(x/5)*5;
+  let prec="", n=-1;
+  L.forEach(x=>{
+    const t=new Date(x.t), j=x.t.slice(0,10), nouveau=j!==prec; prec=j; if(nouveau) n++;
+    const it=x.estime?";font-style:italic":"";
+    h+=`<tr style="background:${n%2?"#DDEEFF":"#CCFFFF"}${it}">`;
+    if(nouveau) h+=`<td class="jour" rowspan="${parJour[j]}">${JOURS[t.getDay()].replace(".","")}<br>${t.getDate()}</td>`;
+    h+=`<td>${String(t.getHours()).padStart(2,"0")}:00</td>`;
+    if(x.temp==null){h+=`<td class="c" colspan="7">--</td></tr>`;return;}
+    const ct=couleurTemp(x.temp), cm=couleurMoy(x.moy), cr=couleurRaf(x.raf), cp=x.pluie==null?null:couleurPluie(x.pluie);
+    h+=`<td class="c" style="background:${ct};color:${texteSur(ct)}">${Math.round(x.temp)} °C</td>`+
+      (x.dir==null?`<td class="c">--</td>`:`<td class="c dir" style="background:${cm}">${fleche(x.dir)}</td>`)+
+      `<td class="c" style="background:${x.moy==null?"transparent":cm}">${v5(x.moy)}</td>`+
+      (x.raf==null?`<td class="c">${x.raf_txt||"--"}</td>`:`<td class="c" style="background:${cr}">${v5(x.raf)}</td>`)+
+      (cp?`<td class="c" style="background:${cp};color:${texteSur(cp)}">${x.pluie.toFixed(1)} mm</td>`:celluleNiveau(x.pluie_txt))+
+      (x.hum==null?(x.hum_txt?`<td class="c" style="background:${HUMS[x.hum_txt]}">${x.hum_txt}</td>`:`<td class="c">--</td>`):`<td class="c" style="background:${couleurHum(x.hum)}">${Math.round(x.hum)} %</td>`)+
+      `<td class="ico" title="${(x.ciel||"").replace(/[<>&"]/g,"")}">${icone(x.code,t.getHours())}</td></tr>`;
+  });
+  return h+`</tbody></table></div></div>`;
+}
+function v4(){
+  const D=window.DONNEES;
+  if(!D) return '<div class="err">Les données des 4 sites ne sont pas encore là. Lance le programme « recuperer_meteo.py ».</div>';
+  const maj=new Date(D.maj);
+  return `<div class="barre4"><span>Lu sur les 4 sites à ${maj.toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})} · <i>en italique</i> = estimé (le site donne moins de détail)</span>
+    <label><input type="checkbox" id="ensemble" ${ensemble?"checked":""}> Faire défiler les 4 ensemble</label></div>
+    ${DEFS_ICONES}<div class="quatre">${SOURCES.map(([id,nom])=>tableau(id,nom,D.sources[id]||{})).join("")}</div>`;
+}
+// Rétrécit les 4 tableaux pour qu'ils tiennent en largeur et en hauteur sur l'écran
+function ajusterTaille(){
+  const q=document.querySelector(".quatre"); if(!q) return;
+  const boites=[...document.querySelectorAll(".defile")];
+  const hauteurs=z=>{const haut=q.getBoundingClientRect().top;
+    boites.forEach(d=>{const titre=d.previousElementSibling?d.previousElementSibling.offsetHeight:0;
+      d.style.maxHeight=Math.max(200,(window.innerHeight-haut-12)/z-titre)+"px";});};
+  // 1) taille normale, avec les barres de défilement déjà présentes (elles prennent de la place)
+  q.style.zoom=1; hauteurs(1);
+  // 2) on mesure la largeur réelle des 4 tableaux et on rétrécit juste ce qu'il faut (petite marge)
+  const blocs=q.children, dispo=q.parentElement.clientWidth;
+  const besoin=blocs[blocs.length-1].getBoundingClientRect().right-blocs[0].getBoundingClientRect().left;
+  const z=Math.min(1,(dispo-4)/besoin);
+  q.style.zoom=z; hauteurs(z);
+}
+window.addEventListener("resize",()=>{if(version=="4") ajusterTaille();});
+function brancherDefilement(){
+  const boites=[...document.querySelectorAll(".defile")]; let occupe=false;
+  boites.forEach(b=>b.addEventListener("scroll",()=>{
+    if(!ensemble||occupe) return; occupe=true;
+    boites.forEach(o=>{if(o!==b) o.scrollTop=b.scrollTop;});
+    requestAnimationFrame(()=>occupe=false);
+  }));
+  const c=document.getElementById("ensemble");
+  if(c) c.addEventListener("change",()=>{ensemble=c.checked; try{localStorage.setItem("ensemble",ensemble?"1":"0")}catch(e){}});
+}
+
+function afficher(){
+  document.querySelectorAll(".versions button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v==version));
+  document.querySelector(".wrap").classList.toggle("large",version=="4");
+  if(version!="4" && !data) return;
+  document.getElementById("contenu").innerHTML={"1":v1,"2":v2,"3":v3,"4":v4}[version]();
+  if(version=="4"){ brancherDefilement(); ajusterTaille(); requestAnimationFrame(ajusterTaille); }
+}
+document.querySelectorAll(".versions button").forEach(b=>b.addEventListener("click",()=>{
+  version=b.dataset.v; try{localStorage.setItem("version",version)}catch(e){} afficher();
+}));
+afficher(); charger(); setInterval(()=>location.reload(),15*60*1000);
+</script>
+</body>
+</html>
