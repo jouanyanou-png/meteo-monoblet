@@ -411,6 +411,8 @@ const Assistant=(function(){
     const auj=new Date(); const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
     const plus=n=>{const d=new Date(auj); d.setDate(d.getDate()+n); return iso(d);};
     let choix=null, mot="";
+    q=q.replace(/aujourdhui|ojourdhui|aujourdui/g,"aujourd hui");
+    q=q.replace(/\b(demin|demai|deman)\b/g,"demain");
     if(/apres[ -]demain/.test(q)){choix=[plus(2)]; mot="après-demain";}
     else if(/demain/.test(q)){choix=[plus(1)]; mot="demain";}
     else if(/aujourd|ce matin|cet apres|ce soir|cette nuit|maintenant|tout a l heure/.test(q)){choix=[plus(0)]; mot="aujourd'hui";}
@@ -487,6 +489,24 @@ const Assistant=(function(){
       return `${Maj(nomJour(j))} : ${ciel}, ${tMin} à ${tMax} °C${v>=45?", venteux":""}.`;
     }).join("\n")+accordPhrase(L);
   }
+  // promenade, balade, courses... : le meilleur moment sec de la journée
+  function sortie(L,mot){
+    const out=[];
+    for(const [j,ls] of groupe(L)){
+      const jour=ls.filter(l=>heure(l)>=7&&heure(l)<=19); if(!jour.length) continue;
+      const sec=jour.filter(l=>!pleut(l)), t=Math.max(...jour.map(l=>l.temp)), v=Math.max(...jour.map(l=>l.raf||0));
+      const habit=t<8?" Couvre-toi bien.":t<14?" Prends une veste.":"";
+      if(sec.length===jour.length) out.push(`${Maj(nomJour(j))} : oui, temps sec toute la journée, jusqu'à ${r(t)} °C${v>=45?", mais du vent ("+r(v)+" km/h)":""}.${habit}`);
+      else if(!sec.length) out.push(`${Maj(nomJour(j))} : pas idéal, il pleut toute la journée. Prends le parapluie.`);
+      else{
+        // plus longue suite de créneaux secs
+        let best=[],cur=[]; jour.forEach(l=>{ if(!pleut(l)){cur.push(l); if(cur.length>best.length) best=[...cur];} else cur=[]; });
+        const h1=heure(best[0]), h2=Math.min(heure(best[best.length-1])+3,20);
+        out.push(`${Maj(nomJour(j))} : oui, plutôt entre ${h1}h et ${h2}h, c'est sec. Il pleut ${moment(heure(jour.find(pleut)))}.${habit}`);
+      }
+    }
+    return (out.join("\n")||"Je n'ai pas de prévisions pour ce moment.")+accordPhrase(L);
+  }
   function meilleurJour(L,quoi){
     const notes=[...groupe(L)].map(([j,ls])=>{
       const jour=ls.filter(l=>heure(l)>=7&&heure(l)<=16); if(jour.length<2) return null;
@@ -521,13 +541,14 @@ const Assistant=(function(){
     if(/dans \d+ (semaines|mois)|dans (deux|trois|quinze) (semaines|jours)|mois prochain|l an prochain|noel|nouvel an/.test(q)) return "C'est trop loin : les prévisions vont au plus à "+[...new Set(L.map(jourDe))].length+" jours.";
     if(/^(bonjour|salut|coucou|hello)\b/.test(q)&&q.length<15) return "Bonjour ! "+AIDE;
     if(/d accord|desaccord|pourquoi|differ|se trompe|fiable|croire/.test(q)) return desaccord(P.lignes||parDefaut(16));
-    if(/linge|etendre|secher|lessive|sechage/.test(q)) return linge(P.lignes||parDefaut(16),mot);
-    if(/quel jour|meilleur|quand .*(jardin|planter|tondre|sortir|promen|travaux|bricol)|jardin|planter|tondre|potager|tailler|semer/.test(q)&&!/arros/.test(q))
-      return P.lignes&&P.lignes.length&&!/quel jour|meilleur|quand/.test(q) ? general(P.lignes,mot)+"\n"+(P.lignes.some(pleut)?"Pas idéal pour le jardin à cause de la pluie.":"Bon pour le jardin.") : meilleurJour(P.lignes||L,/promen|sortir/.test(q)?"sortir":"le jardin");
+    if(/(promen|promn|prome|balad|marche|randon|rando|sortir|sortie|velo|courses|marche|chien|footing|courir|pique[ -]?nique)/.test(q)&&!/quel jour|meilleur|quand/.test(q)) return sortie(P.lignes||parDefaut(16),mot);
+    if(/linge|lin?ge|etend|etan|secher|lessive|sechage/.test(q)) return linge(P.lignes||parDefaut(16),mot);
+    if(/quel jour|meilleur|quand .*(jardin|planter|tondre|sortir|promen|travaux|bricol)|jardin|planter|tondre|potager|tailler|semer|(promen|promn|prome|balad|marche|randon|rando|sortir|sortie|velo|courses|marche|chien|footing|courir|pique[ -]?nique)/.test(q)&&!/arros/.test(q))
+      return P.lignes&&P.lignes.length&&!/quel jour|meilleur|quand/.test(q) ? general(P.lignes,mot)+"\n"+(P.lignes.some(pleut)?"Pas idéal pour le jardin à cause de la pluie.":"Bon pour le jardin.") : meilleurJour(P.lignes||L,/(promen|promn|prome|balad|marche|randon|rando|sortir|sortie|velo|courses|marche|chien|footing|courir|pique[ -]?nique)/.test(q)?"sortir":"le jardin");
     if(/arros/.test(q)){ const pl=(P.lignes||parDefaut(16)).filter(pleut); return pl.length?`Pas besoin d'arroser : la pluie s'en charge (${pl.reduce((s,l)=>s+l.pluie,0).toFixed(1).replace(".",",")} mm prévus).`:"Oui, pas de pluie prévue : il faudra arroser."; }
-    if(/gel|geler|givre|gelee/.test(q)) return gel(P.lignes||L.slice(0,56),P.mot||"cette semaine");
-    if(/pleu|pluie|parapluie|averse|orage|mouill/.test(q)) return pluie(P.lignes||parDefaut(16),mot);
-    if(/vent|rafale|mistral|tramontane|souffl/.test(q)) return vent(P.lignes||parDefaut(16),mot);
+    if(/gel|geler|givre|gelee|jel/.test(q)) return gel(P.lignes||L.slice(0,56),P.mot||"cette semaine");
+    if(/pleu|plui|plu |parapluie|averse|orage|mouill/.test(q)) return pluie(P.lignes||parDefaut(16),mot);
+    if(/vent|van |rafale|mistral|tramontane|souffl/.test(q)) return vent(P.lignes||parDefaut(16),mot);
     if(/temperature|degre|chaud|froid|chaleur|couvrir|manteau|habill/.test(q)) return temperature(P.lignes||parDefaut(16),mot);
     if(/temps|meteo|prevision|beau|soleil|fera/.test(q)||P.lignes) return general(P.lignes||parDefaut(24),mot);
     return "Je n'ai pas compris, désolé.\n"+AIDE;
