@@ -298,11 +298,11 @@ function celluleNiveau(n){
 }
 function tableau(id,nom,src){
   const L=src.lignes||[];
-  const avecHum=id==="meteociel";  // humidité seulement pour Meteociel
+  const avecHum=id==="meteociel", avecDir=id==="meteociel";  // humidité et direction du vent seulement pour Meteociel
   const nbJours=new Set(L.map(l=>l.t.slice(0,10))).size;
   let h=`<div class="bloc"><div class="bloc-titre">${nom}<span>${src.lieu?src.lieu+" · ":""}${src.erreur?"site non lu":nbJours+" jours"}</span></div><div class="defile" data-id="${id}">`;
   if(!L.length) return h+`<div class="err" style="margin:8px">Ce site n'a pas pu être lu cette fois-ci.</div></div></div>`;
-  h+=`<table class="mc"><thead><tr class="tete"><td rowspan="2">Jour</td><td rowspan="2">Heure</td><td rowspan="2">Temp.</td><td colspan="3">Vent km/h</td><td rowspan="2">Pluie<br>sur 3h</td>${avecHum?`<td rowspan="2">Humidité</td>`:""}<td rowspan="2">Temps</td></tr><tr class="tete"><td>dir.</td><td>moy.</td><td>raf.</td></tr></thead><tbody>`;
+  h+=`<table class="mc"><thead><tr class="tete"><td rowspan="2">Jour</td><td rowspan="2">Heure</td><td rowspan="2">Temp.</td><td colspan="${avecDir?3:2}">Vent km/h</td><td rowspan="2">Pluie<br>sur 3h</td>${avecHum?`<td rowspan="2">Humidité</td>`:""}<td rowspan="2">Temps</td></tr><tr class="tete">${avecDir?"<td>dir.</td>":""}<td>moy.</td><td>raf.</td></tr></thead><tbody>`;
   const parJour={}; L.forEach(l=>{const j=l.t.slice(0,10); parJour[j]=(parJour[j]||0)+1;});
   const v5=x=>x==null?"--":Math.round(x/5)*5;
   let prec="", n=-1;
@@ -312,10 +312,10 @@ function tableau(id,nom,src){
     h+=`<tr style="background:${n%2?"#DDEEFF":"#CCFFFF"}${it}">`;
     if(nouveau) h+=`<td class="jour" rowspan="${parJour[j]}">${JOURS[t.getDay()].replace(".","")}<br>${t.getDate()}</td>`;
     h+=`<td>${String(t.getHours()).padStart(2,"0")}:00</td>`;
-    if(x.temp==null){h+=`<td class="c" colspan="${avecHum?7:6}">--</td></tr>`;return;}
+    if(x.temp==null){h+=`<td class="c" colspan="${5+avecHum+avecDir}">--</td></tr>`;return;}
     const ct=couleurTemp(x.temp), cm=couleurMoy(x.moy), cr=couleurRaf(x.raf), cp=x.pluie==null?null:couleurPluie(x.pluie);
     h+=`<td class="c" style="background:${ct};color:${texteSur(ct)}">${Math.round(x.temp)} °C</td>`+
-      (x.dir==null?`<td class="c">--</td>`:`<td class="c dir" style="background:${cm}">${fleche(x.dir)}</td>`)+
+      (!avecDir?"":x.dir==null?`<td class="c">--</td>`:`<td class="c dir" style="background:${cm}">${fleche(x.dir)}</td>`)+
       `<td class="c" style="background:${x.moy==null?"transparent":cm}">${v5(x.moy)}</td>`+
       (x.raf==null?`<td class="c">${x.raf_txt||"--"}</td>`:`<td class="c" style="background:${cr}">${v5(x.raf)}</td>`)+
       (cp?`<td class="c" style="background:${cp};color:${texteSur(cp)}">${x.pluie.toFixed(1)} mm</td>`:celluleNiveau(x.pluie_txt))+
