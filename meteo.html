@@ -368,7 +368,16 @@ function afficher(){
 document.querySelectorAll(".versions button").forEach(b=>b.addEventListener("click",()=>{
   version=b.dataset.v; try{localStorage.setItem("version",version)}catch(e){} afficher();
 }));
-afficher(); charger(); setInterval(()=>location.reload(),15*60*1000);
+// Sur internet : les chiffres les plus récents sont lus sur GitHub (actualisés toutes les heures)
+async function donneesEnLigne(){
+  try{
+    const r=await fetch("https://raw.githubusercontent.com/jouanyanou-png/meteo-monoblet/main/donnees.js?t="+Date.now(),{cache:"no-store"});
+    if(!r.ok) return;
+    const t=await r.text(), d=JSON.parse(t.slice(t.indexOf("=")+1).trim().replace(/;$/,""));
+    if(!window.DONNEES||d.maj>window.DONNEES.maj){window.DONNEES=d; afficher();}
+  }catch(e){}
+}
+afficher(); charger(); donneesEnLigne(); setInterval(()=>location.reload(),15*60*1000);
 </script>
 </body>
 </html>
