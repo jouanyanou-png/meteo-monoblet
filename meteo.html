@@ -103,10 +103,7 @@ table.mc{border-collapse:collapse;font-family:Verdana,Arial,Helvetica,sans-serif
     <div><h1>Météo Monoblet</h1><div class="maj" id="maj">Chargement…</div></div>
     <div class="versions" role="group" aria-label="Choisir la version">
       <button data-v="5">Moyenne</button>
-      <button data-v="4">4 · Tableau</button>
-      <button data-v="1">1 · Coup d'œil</button>
-      <button data-v="2">2 · Semaine</button>
-      <button data-v="3">3 · Les 4 avis</button>
+      <button data-v="4">4 tableaux</button>
     </div>
   </div>
   <div id="contenu"></div>
@@ -116,12 +113,10 @@ table.mc{border-collapse:collapse;font-family:Verdana,Arial,Helvetica,sans-serif
     <a href="https://www.lameteoagricole.net/meteo-heure-par-heure/monoblet-30170.html" target="_blank" rel="noopener">Météo Agricole</a>
     <a href="https://www.meteolanguedoc.com/" target="_blank" rel="noopener">Météo Languedoc</a>
   </div>
-  <div class="note">Tableau : chiffres lus sur les 4 sites toutes les heures par le programme recuperer_meteo.py. Versions 1 à 3 : Open-Meteo.</div>
+  <div class="note">Chiffres lus sur les 4 sites toutes les heures.</div>
 </div>
 <script src="donnees.js"></script>
 <script>
-const LAT=43.996, LON=3.888;
-const MODELES=[["meteofrance_seamless","Météo-France"],["ecmwf_ifs025","Européen"],["icon_seamless","Allemand"],["gfs_seamless","Américain"]];
 const JOURS=["Dim.","Lun.","Mar.","Mer.","Jeu.","Ven.","Sam."];
 
 function meteo(c){
@@ -142,98 +137,11 @@ function meteo(c){
 }
 const r1=x=>Math.round(x);
 
-let data=null, comp=null, horaire=null;
 let version="5";
 try{version=localStorage.getItem("version")||"5"}catch(e){}
+if(version!=="4"&&version!=="5") version="5";
 if(location.hash==="#moyenne") version="5";
 if(location.hash==="#tableau") version="4";
-
-async function charger(){
-  try{
-    const base="https://api.open-meteo.com/v1/forecast?latitude="+LAT+"&longitude="+LON+"&timezone=Europe%2FParis";
-    const [a,b,h]=await Promise.all([
-      fetch(base+"&current=temperature_2m,apparent_temperature,weather_code,wind_speed_10m&hourly=temperature_2m,precipitation,precipitation_probability&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum,precipitation_probability_max,wind_speed_10m_max&forecast_days=7").then(r=>r.json()),
-      fetch(base+"&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_sum&models="+MODELES.map(m=>m[0]).join(",")+"&forecast_days=2").then(r=>r.json()),
-      fetch(base+"&hourly=temperature_2m,precipitation,wind_speed_10m,wind_direction_10m,wind_gusts_10m,weather_code,relative_humidity_2m&models="+MODELES.map(m=>m[0]).join(",")+"&forecast_days=4").then(r=>r.json())
-    ]);
-    data=a; comp=b; horaire=h;
-    document.getElementById("maj").textContent="Mis à jour à "+new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
-    afficher();
-  }catch(e){
-    document.getElementById("contenu").innerHTML='<div class="err">Pas de connexion internet. Utilise les boutons en bas pour aller sur les sites.</div>';
-    document.getElementById("maj").textContent="Pas de données";
-  }
-}
-
-function prochainesHeures(){
-  const now=new Date(data.current.time); const t=data.hourly.time;
-  let i=t.findIndex(x=>new Date(x)>=now); if(i<0)i=0; i=Math.max(0,i-1);
-  return Array.from({length:12},(_,k)=>i+k).filter(k=>k<t.length);
-}
-
-function verdicts(){
-  const hs=prochainesHeures();
-  const pluie=hs.reduce((s,k)=>s+data.hourly.precipitation[k],0);
-  const proba=Math.max(...hs.map(k=>data.hourly.precipitation_probability[k]||0));
-  const ressenti=data.current.apparent_temperature;
-  const para= pluie>=1||proba>=60 ? ["non","☂️","Parapluie : OUI"] : proba>=30 ? ["bof","🌂","Parapluie : peut-être"] : ["ok","😎","Parapluie : non"];
-  const linge= pluie>=0.3||proba>=40 ? ["non","👕","Linge dehors : NON"] : proba>=20 ? ["bof","👕","Linge : risqué"] : ["ok","👕","Linge dehors : OUI"];
-  const manteau= ressenti<8 ? ["non","🧥","Gros manteau"] : ressenti<15 ? ["bof","🧥","Petite veste"] : ["ok","👚","Pas de veste"];
-  return [para,linge,manteau];
-}
-
-function v1(){
-  const c=data.current, [ico,txt]=meteo(c.weather_code), d=data.daily;
-  const [icoJ,txtJ]=meteo(d.weather_code[0]);
-  const hs=prochainesHeures();
-  const max=Math.max(2,...hs.map(k=>data.hourly.precipitation[k]));
-  return `
-  <div class="card big">
-    <div class="ico">${ico}</div>
-    <div>
-      <div class="temp">${r1(c.temperature_2m)}°</div>
-      <div class="sub">ressenti ${r1(c.apparent_temperature)}°</div>
-    </div>
-    <div>
-      <div class="phrase">Maintenant : ${txt}</div>
-      <div class="sub">Aujourd'hui : ${txtJ} ${icoJ} · ${r1(d.temperature_2m_min[0])}° à ${r1(d.temperature_2m_max[0])}°</div>
-    </div>
-  </div>
-  <div class="verdicts">${verdicts().map(v=>`<div class="v ${v[0]}"><span class="i">${v[1]}</span>${v[2]}</div>`).join("")}</div>
-  <div class="card">
-    <h2 class="titre">Pluie dans les 12 prochaines heures</h2>
-    <div class="heures">${hs.map(k=>{
-      const p=data.hourly.precipitation[k], h=new Date(data.hourly.time[k]).getHours();
-      return `<div class="h"><span>${p>0?p.toFixed(1):""}</span><div class="bar" style="height:${(p/max)*100}%"></div><span class="t">${h}h</span></div>`}).join("")}</div>
-  </div>`;
-}
-
-function v2(){
-  const d=data.daily;
-  const lo=Math.min(...d.temperature_2m_min), hi=Math.max(...d.temperature_2m_max), span=Math.max(1,hi-lo);
-  return `<div class="card"><h2 class="titre">Les 7 prochains jours</h2><div class="jours">${d.time.map((t,i)=>{
-    const [ic,tx]=meteo(d.weather_code[i]); const date=new Date(t);
-    const nom=i==0?"Auj.":i==1?"Demain":JOURS[date.getDay()];
-    const g=(d.temperature_2m_min[i]-lo)/span*100, w=(d.temperature_2m_max[i]-d.temperature_2m_min[i])/span*100;
-    const mm=d.precipitation_sum[i];
-    return `<div class="j"><div class="nom">${nom}</div><div class="ic" title="${tx}">${ic}</div>
-      <div><div class="plage"><span style="left:${g}%;width:${Math.max(w,4)}%"></span></div>
-      <div class="minmax"><span>${r1(d.temperature_2m_min[i])}°</span><span>${r1(d.temperature_2m_max[i])}°</span></div></div>
-      <div class="mm ${mm<0.2?"sec":""}">${mm<0.2?"sec":"💧"+r1(mm)+" mm"}</div></div>`}).join("")}</div></div>`;
-}
-
-function v3(){
-  const bloc=(i,titre)=>{
-    const vals=MODELES.map(([id,nom])=>({nom,code:comp.daily["weather_code_"+id]?.[i],max:comp.daily["temperature_2m_max_"+id]?.[i],min:comp.daily["temperature_2m_min_"+id]?.[i],mm:comp.daily["precipitation_sum_"+id]?.[i]})).filter(v=>v.code!=null);
-    const pluvieux=vals.filter(v=>v.mm>=1).length, ecart=Math.max(...vals.map(v=>v.max))-Math.min(...vals.map(v=>v.max));
-    const daccord=(pluvieux==0||pluvieux==vals.length)&&ecart<=3;
-    const msg=daccord?(pluvieux? "✔ Tous d'accord : il va pleuvoir":"✔ Tous d'accord : pas de pluie"):"⚠ Pas d'accord : regarde Meteociel en bas";
-    return `<div class="card"><h2 class="titre">${titre}</h2><div class="avis">${vals.map(v=>{const [ic,tx]=meteo(v.code);
-      return `<div class="a"><div class="src">${v.nom}</div><div class="ic" title="${tx}">${ic}</div><div class="tt">${r1(v.min)}° / ${r1(v.max)}°</div><div class="mm ${v.mm<0.2?"sec":""}">${v.mm<0.2?"sec":"💧"+r1(v.mm)+" mm"}</div></div>`}).join("")}</div>
-      <div class="accord" style="background:var(${daccord?"--ok":"--bof"})">${msg}</div></div>`;
-  };
-  return bloc(0,"Aujourd'hui")+bloc(1,"Demain");
-}
 
 // Couleurs reprises du code de Meteociel (valeurs brutes, pas arrondies)
 function couleurTemp(t){
@@ -414,7 +322,7 @@ function v5(){
   const parJour={}; L.forEach(l=>{const j=l.t.slice(0,10); parJour[j]=(parJour[j]||0)+1;});
   const v5r=x=>x==null?"--":Math.round(x/5)*5;
   let h=`<div class="barre4"><span>Moyenne de Meteociel, Météo-France, Météo Agricole et Météo Languedoc · lu à ${new Date(D.maj).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}</span>
-    <span><b style="background:#66FF66;padding:0 6px">oui</b> les sites sont d'accord · <b style="background:#FFFF09;padding:0 6px">plutôt</b> · <b style="background:#FF9900;padding:0 6px">non</b> pas d'accord : regarde le Tableau</span></div>
+    <span><b style="background:#66FF66;padding:0 6px">oui</b> les sites sont d'accord · <b style="background:#FFFF09;padding:0 6px">plutôt</b> · <b style="background:#FF9900;padding:0 6px">non</b> pas d'accord : regarde les 4 tableaux</span></div>
     ${DEFS_ICONES}<div class="seul"><div class="bloc"><div class="bloc-titre">Moyenne des 4 météos<span>${Object.keys(parJour).length} jours</span></div><div class="defile">
     <table class="mc"><thead><tr class="tete"><td rowspan="2">Jour</td><td rowspan="2">Heure</td><td rowspan="2">Temp.</td><td colspan="3">Vent km/h</td><td rowspan="2">Pluie<br>sur 3h</td><td rowspan="2">Temps</td><td rowspan="2">D'accord ?</td><td rowspan="2" title="Nombre de sites qui prévoient cette heure">Sites</td></tr>
     <tr class="tete"><td>dir.</td><td>moy.</td><td>raf.</td></tr></thead><tbody>`;
@@ -450,8 +358,8 @@ window.addEventListener("resize",()=>{if(version=="5") ajusterMoyenne();});
 function afficher(){
   document.querySelectorAll(".versions button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v==version));
   document.querySelector(".wrap").classList.toggle("large",version=="4"||version=="5");
-  if(version!="4" && version!="5" && !data) return;
-  document.getElementById("contenu").innerHTML={"1":v1,"2":v2,"3":v3,"4":v4,"5":v5}[version]();
+  if(window.DONNEES) document.getElementById("maj").textContent="Mis à jour à "+new Date(window.DONNEES.maj).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+  document.getElementById("contenu").innerHTML={"4":v4,"5":v5}[version]();
   if(version=="4"){ brancherDefilement(); ajusterTaille(); requestAnimationFrame(ajusterTaille); }
   if(version=="5"){ ajusterMoyenne(); requestAnimationFrame(ajusterMoyenne); }
 }
@@ -467,7 +375,7 @@ async function donneesEnLigne(){
     if(!window.DONNEES||d.maj>window.DONNEES.maj){window.DONNEES=d; afficher();}
   }catch(e){}
 }
-afficher(); charger(); donneesEnLigne(); setInterval(()=>location.reload(),15*60*1000);
+afficher(); donneesEnLigne(); setInterval(()=>location.reload(),15*60*1000);
 </script>
 </body>
 </html>
