@@ -76,7 +76,9 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-
 .defile .mc td.dir svg{width:16px;height:16px}
 .barre4{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:.85rem;color:var(--muted)}
 .barre4 label{cursor:pointer;color:var(--fg)}
-.seul{display:flex;justify-content:center}
+.seul{display:flex;justify-content:center;gap:10px}
+.seul td.jour span{position:sticky;display:inline-block}
+#moyG{scrollbar-width:none}
 .seul .bloc{width:max-content}
 /* Look Meteociel (valeurs reprises de leur code) */
 table.mc{border-collapse:collapse;font-family:Verdana,Arial,Helvetica,sans-serif;font-size:12px;color:#000066;margin:0 auto;background:#fff}
@@ -323,16 +325,16 @@ function v5(){
   const v5r=x=>x==null?"--":Math.round(x/5)*5;
   let h=`<div class="barre4"><span>Moyenne de Meteociel, Météo-France, Météo Agricole et Météo Languedoc · lu à ${new Date(D.maj).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}</span>
     <span><b style="background:#66FF66;padding:0 6px">oui</b> les sites sont d'accord · <b style="background:#FFFF09;padding:0 6px">plutôt</b> · <b style="background:#FF9900;padding:0 6px">non</b> pas d'accord : regarde les 4 tableaux</span></div>
-    ${DEFS_ICONES}<div class="seul"><div class="bloc"><div class="bloc-titre">Moyenne des 4 météos<span>${Object.keys(parJour).length} jours</span></div><div class="defile">
-    <table class="mc"><thead><tr class="tete"><td rowspan="2">Jour</td><td rowspan="2">Heure</td><td rowspan="2">Temp.</td><td colspan="3">Vent km/h</td><td rowspan="2">Pluie<br>sur 3h</td><td rowspan="2">Temps</td><td rowspan="2">D'accord ?</td><td rowspan="2" title="Nombre de sites qui prévoient cette heure">Sites</td></tr>
+    ${DEFS_ICONES}<div class="seul">`;
+  let c=`<table class="mc"><thead><tr class="tete"><td rowspan="2">Jour</td><td rowspan="2">Heure</td><td rowspan="2">Temp.</td><td colspan="3">Vent km/h</td><td rowspan="2">Pluie<br>sur 3h</td><td rowspan="2">Temps</td><td rowspan="2">D'accord ?</td><td rowspan="2" title="Nombre de sites qui prévoient cette heure">Sites</td></tr>
     <tr class="tete"><td>dir.</td><td>moy.</td><td>raf.</td></tr></thead><tbody>`;
   let prec="", n=-1;
   L.forEach(x=>{
     const t=new Date(x.t), j=x.t.slice(0,10), nouveau=j!==prec; prec=j; if(nouveau) n++;
     const ct=couleurTemp(x.temp), cm=couleurMoy(x.moy), cr=couleurRaf(x.raf), cp=x.pluie==null?null:couleurPluie(x.pluie);
-    h+=`<tr style="background:${n%2?"#DDEEFF":"#CCFFFF"}">`;
-    if(nouveau) h+=`<td class="jour" rowspan="${parJour[j]}">${JOURS[t.getDay()].replace(".","")}<br>${t.getDate()}</td>`;
-    h+=`<td>${String(t.getHours()).padStart(2,"0")}:00</td>`+
+    c+=`<tr style="background:${n%2?"#DDEEFF":"#CCFFFF"}">`;
+    if(nouveau) c+=`<td class="jour" rowspan="${parJour[j]}"><span>${JOURS[t.getDay()].replace(".","")}<br>${t.getDate()}</span></td>`;
+    c+=`<td>${String(t.getHours()).padStart(2,"0")}:00</td>`+
       `<td class="c" style="background:${ct};color:${texteSur(ct)}">${Math.round(x.temp)} °C</td>`+
       (x.dir==null?`<td class="c">--</td>`:`<td class="c dir" style="background:${cm}">${fleche(x.dir)}</td>`)+
       `<td class="c" style="background:${x.moy==null?"transparent":cm}">${v5r(x.moy)}</td>`+
@@ -342,16 +344,44 @@ function v5(){
       `<td class="c" style="background:${COULEUR_ACCORD[x.accord]};font-weight:bold" title="${x.detail}">${x.accord}</td>`+
       `<td class="c">${x.n}/4</td></tr>`;
   });
-  return h+`</tbody></table></div></div></div>`;
+  c+=`</tbody></table>`;
+  // 2 tableaux côte à côte : celui de droite est la suite de celui de gauche
+  return h+`<div class="bloc"><div class="bloc-titre">Moyenne des 4 météos<span>${Object.keys(parJour).length} jours</span></div><div class="defile" id="moyG">${c}</div></div>`+
+    `<div class="bloc"><div class="bloc-titre">Suite →<span>&nbsp;</span></div><div class="defile" id="moyD">${c}</div></div></div>`;
 }
-// la Moyenne est seule : plus grande, centrée, et sa hauteur s'arrête au bas de l'écran
+// la Moyenne : 2 tableaux centrés, aussi grands que possible, jusqu'au bas de l'écran
 function ajusterMoyenne(){
   const q=document.querySelector(".seul"); if(!q) return;
-  const d=q.querySelector(".defile"), titre=q.querySelector(".bloc-titre").offsetHeight;
+  const G=document.getElementById("moyG"), D=document.getElementById("moyD"); if(!G||!D) return;
+  const titre=q.querySelector(".bloc-titre").offsetHeight;
   q.style.zoom=1;
-  const z=Math.max(1,Math.min(1.6,(q.parentElement.clientWidth-8)/q.querySelector(".bloc").offsetWidth));
+  const larg=[...q.querySelectorAll(".bloc")].reduce((s,b)=>s+b.offsetWidth,0)+10;
+  const z=Math.max(0.5,Math.min(1.25,(q.parentElement.clientWidth-8)/larg));
   q.style.zoom=z;
-  d.style.maxHeight=Math.max(200,(window.innerHeight-q.getBoundingClientRect().top-12)/z-titre)+"px";
+  const haut=Math.max(200,(window.innerHeight-q.getBoundingClientRect().top-12)/z-titre)+"px";
+  const th=G.querySelector("thead").offsetHeight, tb=G.querySelector("tbody");
+  const ligne=tb.offsetHeight/tb.rows.length;                 // hauteur d'une ligne
+  const n=Math.max(5,Math.floor((parseFloat(haut)-th)/ligne)); // lignes entières seulement
+  G.style.height=D.style.height=(th+n*ligne)+"px"; G.style.maxHeight=D.style.maxHeight="none";
+  pasLigne=ligne;
+  q.querySelectorAll("td.jour span").forEach(s=>s.style.top=(th+2)+"px");
+  caler("G");
+}
+// décalage = hauteur visible des lignes : la 1re ligne de droite suit la dernière de gauche
+function caler(qui){
+  const G=document.getElementById("moyG"), D=document.getElementById("moyD"); if(!G||!D) return;
+  const dec=Math.round((G.clientHeight-G.querySelector("thead").offsetHeight)/pasLigne)*pasLigne;
+  const max=Math.max(0,G.scrollHeight-G.clientHeight-dec);
+  let p=qui==="D"?D.scrollTop-dec:G.scrollTop;
+  p=Math.max(0,Math.min(max,p));
+  calage=true; G.scrollTop=p; D.scrollTop=p+dec;
+  requestAnimationFrame(()=>calage=false);
+}
+let calage=false, pasLigne=1;
+function brancherMoyenne(){
+  const G=document.getElementById("moyG"), D=document.getElementById("moyD"); if(!G||!D) return;
+  G.addEventListener("scroll",()=>{if(!calage) caler("G");});
+  D.addEventListener("scroll",()=>{if(!calage) caler("D");});
 }
 window.addEventListener("resize",()=>{if(version=="5") ajusterMoyenne();});
 
@@ -361,7 +391,7 @@ function afficher(){
   if(window.DONNEES) document.getElementById("maj").textContent="Mis à jour à "+new Date(window.DONNEES.maj).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
   document.getElementById("contenu").innerHTML={"4":v4,"5":v5}[version]();
   if(version=="4"){ brancherDefilement(); ajusterTaille(); requestAnimationFrame(ajusterTaille); }
-  if(version=="5"){ ajusterMoyenne(); requestAnimationFrame(ajusterMoyenne); }
+  if(version=="5"){ brancherMoyenne(); ajusterMoyenne(); requestAnimationFrame(ajusterMoyenne); }
 }
 document.querySelectorAll(".versions button").forEach(b=>b.addEventListener("click",()=>{
   version=b.dataset.v; try{localStorage.setItem("version",version)}catch(e){} afficher();
