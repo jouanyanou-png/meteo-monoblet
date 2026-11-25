@@ -155,13 +155,23 @@ def meteociel():
 
 # ---------------------------------------------------------- Meteo Agricole
 def agricole():
-    # heure par heure (environ 2 jours)
-    s = lire(URL_AGRICOLE_H)
-    thead = s[s.find("<thead"):s.find("</thead>")]
-    tetes = re.findall(r'<span class="fs-5 mb-2[^"]*">(\d+)</span>\s*<span class="fs-5\s+mt-1 mb-2">(\d+)h</span>', thead)
-    tbody = s[s.find("<tbody"):s.find("</tbody>")]
-    points = []
-    for (jour, h), c in zip(tetes, re.split(r"<td[^>]*>", tbody)[1:]):
+    # heure par heure : page principale (2 jours) + page "j3" (le 3e jour en entier)
+    pages = [lire(URL_AGRICOLE_H)]
+    try:
+        pages.append(lire(URL_AGRICOLE_H.replace(".html", "-j3.html")))
+    except Exception as e:
+        print("agricole j3 non lu :", e, file=sys.stderr)
+    cellules = []
+    for s in pages:
+        thead = s[s.find("<thead"):s.find("</thead>")]
+        tetes = re.findall(r'<span class="fs-5 mb-2[^"]*">(\d+)</span>\s*<span class="fs-5\s+mt-1 mb-2">(\d+)h</span>', thead)
+        tbody = s[s.find("<tbody"):s.find("</tbody>")]
+        cellules += list(zip(tetes, re.split(r"<td[^>]*>", tbody)[1:]))
+    points, vus = [], set()
+    for (jour, h), c in cellules:
+        if (jour, h) in vus:
+            continue
+        vus.add((jour, h))
         t = texte(c)
         ciel = re.search(r'alt="([^"]+)"', c)
         vents = re.findall(r"(\d+)\s*km/h", t)
