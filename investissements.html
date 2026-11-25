@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mes investissements</title>
+<style>
+/* Lisible d'un coup d'œil : gros chiffres, une couleur = un sens (vert monte, rouge baisse, toujours avec ▲▼ et le signe) */
+:root{--fond:#f4f6f9;--carte:#fff;--encre:#111827;--doux:#4b5563;--pale:#6b7280;--trait:#e5e7eb;--hausse:#047857;--baisse:#b91c1c;--ligne:#2563eb;--or:#a16207;--argent:#475569}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fond);color:var(--encre);font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:1250px;margin:0 auto;padding:18px 20px 60px}
+header.haut{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+h1{margin:0;font-size:26px}
+.maj{color:var(--pale);font-size:14px}
+h2{font-size:20px;margin:26px 0 10px;display:flex;align-items:baseline;gap:10px}
+h2 small{font-size:14px;font-weight:400;color:var(--pale)}
+.carte{background:var(--carte);border-radius:14px;box-shadow:0 1px 3px #0001;padding:16px 18px}
+
+/* Actualités */
+.actus{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.actu{background:var(--carte);border-radius:14px;box-shadow:0 1px 3px #0001;overflow:hidden;text-decoration:none;color:inherit;display:flex;flex-direction:column}
+.actu:hover{box-shadow:0 4px 14px #0002}
+.actu .photo{aspect-ratio:16/9;background:#e2e8f0 center/cover no-repeat;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:34px}
+.actu .texte{padding:10px 14px 14px}
+.actu h3{font-size:16px;margin:0 0 6px;line-height:1.3}
+.actu p{margin:0 0 8px;color:var(--doux);font-size:14px}
+.actu .src{font-size:13px;color:var(--pale)}
+.plus{margin-top:10px;background:none;border:1px solid #cbd5e1;border-radius:10px;padding:8px 16px;font:15px system-ui;cursor:pointer}
+
+/* Cours */
+.cours{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:14px}
+.titre-cours{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.nom{font-size:18px;font-weight:700}
+.nom small{display:block;font-weight:400;font-size:13px;color:var(--pale)}
+.prix{font-size:34px;font-weight:700;letter-spacing:-.5px;line-height:1.1}
+.prix2{font-size:15px;color:var(--doux)}
+.var{font-weight:700;font-size:16px}
+.var.h{color:var(--hausse)} .var.b{color:var(--baisse)}
+.plages{display:flex;gap:6px;margin:10px 0 4px}
+.plages button{border:1px solid #cbd5e1;background:#fff;border-radius:8px;padding:4px 10px;font:14px system-ui;cursor:pointer;color:var(--encre)}
+.plages button[aria-pressed=true]{background:var(--encre);color:#fff;border-color:var(--encre)}
+.graph{position:relative}
+.graph svg{display:block;width:100%;height:190px;overflow:visible}
+.bulle{position:absolute;pointer-events:none;background:#111827;color:#fff;font-size:13px;padding:4px 8px;border-radius:6px;white-space:nowrap;transform:translate(-50%,-115%);display:none}
+.note{font-size:12px;color:var(--pale);margin-top:4px}
+
+/* Cryptos */
+table.crypto{width:100%;border-collapse:collapse;font-size:17px}
+.crypto th{text-align:left;font-size:13px;color:var(--pale);font-weight:600;padding:6px 10px;border-bottom:1px solid var(--trait)}
+.crypto td{padding:10px;border-bottom:1px solid var(--trait)}
+.crypto tr:last-child td{border-bottom:0}
+.crypto td.n{text-align:right;font-variant-numeric:tabular-nums}
+.crypto th.n{text-align:right}
+.crypto .sym{color:var(--pale);font-size:14px;margin-left:6px}
+.crypto img{width:24px;height:24px;vertical-align:middle;margin-right:8px}
+.crypto svg{width:130px;height:34px;display:block;margin-left:auto}
+.err{color:var(--baisse)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="haut">
+    <h1>Mes investissements</h1>
+    <span class="maj" id="maj"></span>
+  </header>
+
+  <h2>Actualités Trump <small id="actusInfo"></small></h2>
+  <div class="actus" id="actus"></div>
+  <button class="plus" id="plusActus" type="button">Voir plus d'actualités</button>
+
+  <h2>Cours <small>graphique : passe la souris dessus pour voir le prix d'un jour</small></h2>
+  <div class="cours" id="cours"></div>
+
+  <h2>Cryptomonnaies <small id="cryptoInfo">mis à jour toutes les minutes</small></h2>
+  <div class="carte"><table class="crypto"><thead><tr><th>Monnaie</th><th class="n">Prix</th><th class="n">24 h</th><th class="n">7 jours</th><th class="n">Courbe 7 jours</th></tr></thead><tbody id="cryptos"><tr><td colspan="5">Chargement…</td></tr></tbody></table></div>
+</div>
+
+<script src="bourse.js"></script>
+<script>
+const ONCE_PAR_KG=32.1507;
+const euro=(x,dec)=>x==null?"--":x.toLocaleString("fr-FR",{minimumFractionDigits:dec??2,maximumFractionDigits:dec??2})+" €";
+const dollar=x=>x==null?"--":x.toLocaleString("fr-FR",{minimumFractionDigits:2,maximumFractionDigits:2})+" $";
+const pct=x=>(x>0?"▲ +":x<0?"▼ −":"")+Math.abs(x).toLocaleString("fr-FR",{maximumFractionDigits:2,minimumFractionDigits:2})+" %";
+const classeVar=x=>x>0?"var h":x<0?"var b":"var";
+const echap=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function depuis(iso){
+  if(!iso) return "";
+  const m=Math.round((Date.now()-new Date(iso))/6e4);
+  if(m<60) return "il y a "+Math.max(1,m)+" min";
+  if(m<1440) return "il y a "+Math.round(m/60)+" h";
+  return "il y a "+Math.round(m/1440)+" j";
+}
+
+// ---------- Actualités ----------
+let nbActus=6;
+function afficherActus(){
+  const A=(window.BOURSE&&BOURSE.actus)||[];
+  document.getElementById("actusInfo").textContent=A.length?"les dernières, comme sur un moteur de recherche":"";
+  document.getElementById("actus").innerHTML=A.length?A.slice(0,nbActus).map(a=>{
+    const lien=/^https:\/\//.test(a.lien)?a.lien:"#";
+    const photo=/^https:\/\//.test(a.image)?`style="background-image:url('${echap(a.image)}')"`:"";
+    return `<a class="actu" href="${echap(lien)}" target="_blank" rel="noopener">
+      <div class="photo" ${photo}>${photo?"":"📰"}</div>
+      <div class="texte"><h3>${echap(a.titre)}</h3><p>${echap(a.resume)}</p><div class="src">${echap(a.source)} · ${depuis(a.date)}</div></div></a>`;
+  }).join(""):'<p class="err">Les actualités n\'ont pas pu être lues.</p>';
+  document.getElementById("plusActus").style.display=A.length>nbActus?"":"none";
+}
+document.getElementById("plusActus").onclick=()=>{nbActus+=6; afficherActus();};
+
+// ---------- Cours : DJT, or, argent ----------
+const PLAGES=[["semaine","5 jours"],["1m","1 mois"],["6m","6 mois"],["an","1 an"]];
+const plageChoisie={djt:"1m",or:"1m",argent:"1m"};
+// taux euro/dollar le plus proche d'une date
+function tauxA(t){
+  const E=BOURSE.eurusd; if(!E) return null;
+  const s=t<E.an[E.an.length-1][0]-86400*3?E.an:E.an.concat(E.semaine);
+  let best=s[0]; for(const p of s){ if(p[0]<=t) best=p; else break; } return best[1];
+}
+function serie(id,plage){
+  const S=BOURSE[id]; if(!S) return [];
+  let pts=plage==="semaine"?S.semaine:S.an;
+  if(plage==="1m") pts=pts.filter(p=>p[0]>=Date.now()/1000-31*86400);
+  if(plage==="6m") pts=pts.filter(p=>p[0]>=Date.now()/1000-183*86400);
+  return pts;
+}
+const ACTIFS=[
+  {id:"djt",nom:"DJT",sous:"Trump Media & Technology Group (Nasdaq)",couleur:"var(--ligne)",enEuro:false},
+  {id:"or",nom:"Or",sous:"prix de l'once (31,1 g), converti en euros",couleur:"var(--or)",enEuro:true},
+  {id:"argent",nom:"Argent",sous:"prix de l'once (31,1 g), converti en euros",couleur:"var(--argent)",enEuro:true},
+];
+function valeur(A,p){ return A.enEuro?p[1]/tauxA(p[0]):p[1]; }
+function carteCours(A){
+  const S=BOURSE[A.id];
+  if(!S) return `<div class="carte"><div class="nom">${A.nom}</div><p class="err">Cours non lu.</p></div>`;
+  const taux=BOURSE.eurusd?BOURSE.eurusd.prix:null;
+  const varJour=S.veille?(S.prix/S.veille-1)*100:0;
+  let gros,petit;
+  if(A.enEuro){ const e=S.prix/taux; gros=euro(e); petit=`${euro(e*ONCE_PAR_KG,0)} le kilo · ${dollar(S.prix)} l'once`; }
+  else{ gros=dollar(S.prix); petit=taux?`soit ${euro(S.prix/taux)} par action`:""; }
+  return `<div class="carte" id="carte-${A.id}">
+    <div class="titre-cours"><div class="nom">${A.nom}<small>${A.sous}</small></div>
+      <div style="text-align:right"><div class="prix">${gros}</div><div class="prix2">${petit}</div>
+      <div class="${classeVar(varJour)}">${pct(varJour)} <span style="font-weight:400;color:var(--pale)">depuis hier</span></div></div></div>
+    <div class="plages">${PLAGES.map(([k,l])=>`<button type="button" data-id="${A.id}" data-p="${k}" aria-pressed="${plageChoisie[A.id]===k}">${l}</button>`).join("")}</div>
+    <div class="graph" id="g-${A.id}"></div>
+    ${A.id!=="djt"?'<div class="note">Cours mondial (COMEX). Le prix d\'achat en comptoir (or.fr, bdor.fr) est un peu plus élevé.</div>':''}
+  </div>`;
+}
+// courbe simple, un seul trait, avec curseur et bulle au survol
+function dessinerCourbe(A){
+  const boite=document.getElementById("g-"+A.id); if(!boite) return;
+  const pts=serie(A.id,plageChoisie[A.id]).map(p=>[p[0],valeur(A,p)]).filter(p=>isFinite(p[1]));
+  if(pts.length<2){ boite.innerHTML='<p class="note">Pas assez de points.</p>'; return; }
+  const W=boite.clientWidth||500,H=190,g=46,d=8,h=10,b=24;
+  const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]);
+  const x0=Math.min(...xs),x1=Math.max(...xs); let y0=Math.min(...ys),y1=Math.max(...ys); const m=(y1-y0)*0.08||1; y0-=m; y1+=m;
+  const X=t=>g+(t-x0)/(x1-x0)*(W-g-d), Y=v=>h+(1-(v-y0)/(y1-y0))*(H-h-b);
+  const fmt=v=>A.enEuro?euro(v,0):dollar(v);
+  const ticks=[y0+m,(y0+y1)/2,y1-m];
+  const chemin=pts.map((p,i)=>(i?"L":"M")+X(p[0]).toFixed(1)+","+Y(p[1]).toFixed(1)).join("");
+  const dateC=t=>new Date(t*1000).toLocaleDateString("fr-FR",{day:"numeric",month:"short"});
+  boite.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Courbe ${A.nom}">
+    ${ticks.map(v=>`<line x1="${g}" x2="${W-d}" y1="${Y(v)}" y2="${Y(v)}" stroke="#eef0f3"/><text x="${g-6}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="#6b7280">${A.enEuro?Math.round(v).toLocaleString("fr-FR"):v.toFixed(2)}</text>`).join("")}
+    <text x="${g}" y="${H-6}" font-size="11" fill="#6b7280">${dateC(x0)}</text>
+    <text x="${W-d}" y="${H-6}" font-size="11" fill="#6b7280" text-anchor="end">${dateC(x1)}</text>
+    <path d="${chemin}" fill="none" stroke="${A.couleur}" stroke-width="2" stroke-linejoin="round"/>
+    <line class="cx" y1="${h}" y2="${H-b}" stroke="#9ca3af" stroke-dasharray="3 3" style="display:none"/>
+    <circle class="pt" r="4.5" fill="${A.couleur}" stroke="#fff" stroke-width="2" style="display:none"/>
+    <rect x="${g}" y="0" width="${W-g-d}" height="${H}" fill="transparent"/>
+  </svg><div class="bulle"></div>`;
+  const svg=boite.querySelector("svg"), cx=svg.querySelector(".cx"), pt=svg.querySelector(".pt"), bulle=boite.querySelector(".bulle");
+  const montrer=e=>{
+    const r=svg.getBoundingClientRect(), xv=(e.clientX-r.left)*W/r.width;
+    let best=pts[0]; for(const p of pts) if(Math.abs(X(p[0])-xv)<Math.abs(X(best[0])-xv)) best=p;
+    const px=X(best[0]),py=Y(best[1]);
+    cx.setAttribute("x1",px); cx.setAttribute("x2",px); cx.style.display=""; pt.setAttribute("cx",px); pt.setAttribute("cy",py); pt.style.display="";
+    const quand=plageChoisie[A.id]==="semaine"?new Date(best[0]*1000).toLocaleString("fr-FR",{weekday:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}):new Date(best[0]*1000).toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short",year:"numeric"});
+    bulle.textContent=quand+" : "+fmt(best[1]); bulle.style.display="block"; bulle.style.left=(px*r.width/W)+"px"; bulle.style.top=(py*r.height/H)+"px";
+  };
+  svg.addEventListener("pointermove",montrer);
+  svg.addEventListener("pointerleave",()=>{cx.style.display="none"; pt.style.display="none"; bulle.style.display="none";});
+}
+function afficherCours(){
+  document.getElementById("cours").innerHTML=ACTIFS.map(carteCours).join("");
+  ACTIFS.forEach(dessinerCourbe);
+  document.querySelectorAll(".plages button").forEach(bt=>bt.onclick=()=>{
+    plageChoisie[bt.dataset.id]=bt.dataset.p;
+    bt.parentElement.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===bt));
+    dessinerCourbe(ACTIFS.find(a=>a.id===bt.dataset.id));
+  });
+}
+window.addEventListener("resize",()=>ACTIFS.forEach(dessinerCourbe));
+
+// ---------- Cryptos (en direct, CoinGecko) ----------
+const CRYPTOS=["bitcoin","ripple","solana","dogecoin","ethereum","usd-coin"];
+function mini(prix,hausse){
+  if(!prix||prix.length<2) return "";
+  const W=130,H=34,lo=Math.min(...prix),hi=Math.max(...prix)||1;
+  const p=prix.map((v,i)=>(i?"L":"M")+(i/(prix.length-1)*W).toFixed(1)+","+(2+(1-(v-lo)/((hi-lo)||1))*(H-4)).toFixed(1)).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" aria-hidden="true"><path d="${p}" fill="none" stroke="${hausse?"#047857":"#b91c1c"}" stroke-width="1.6"/></svg>`;
+}
+async function cryptos(){
+  try{
+    const r=await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=eur&ids="+CRYPTOS.join(",")+"&sparkline=true&price_change_percentage=24h,7d");
+    if(!r.ok) throw new Error(r.status);
+    const L=await r.json(); L.sort((a,b)=>CRYPTOS.indexOf(a.id)-CRYPTOS.indexOf(b.id));
+    document.getElementById("cryptos").innerHTML=L.map(c=>{
+      const v24=c.price_change_percentage_24h_in_currency??c.price_change_percentage_24h??0, v7=c.price_change_percentage_7d_in_currency??0;
+      const dec=c.current_price<1?4:2;
+      const img=/^https:\/\//.test(c.image)?`<img src="${echap(c.image)}" alt="">`:"";
+      return `<tr><td>${img}<b>${echap(c.name)}</b><span class="sym">${echap(String(c.symbol).toUpperCase())}</span></td>
+        <td class="n"><b>${euro(c.current_price,dec)}</b></td>
+        <td class="n ${classeVar(v24)}">${pct(v24)}</td><td class="n ${classeVar(v7)}">${pct(v7)}</td>
+        <td>${mini((c.sparkline_in_7d||{}).price,v7>=0)}</td></tr>`;
+    }).join("");
+    document.getElementById("cryptoInfo").textContent="mis à jour à "+new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+" · toutes les minutes";
+  }catch(e){
+    if(!document.querySelector("#cryptos b")) document.getElementById("cryptos").innerHTML='<tr><td colspan="5" class="err">Les cryptos n\'ont pas pu être lues, nouvel essai dans une minute.</td></tr>';
+  }
+}
+
+// ---------- Mise en route ----------
+function tout(){
+  if(!window.BOURSE){ document.getElementById("cours").innerHTML='<p class="err">Les cours ne sont pas encore là.</p>'; return; }
+  document.getElementById("maj").textContent="Actualités et cours lus à "+new Date(BOURSE.maj).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+  afficherActus(); afficherCours();
+}
+async function enLigne(){
+  try{
+    const r=await fetch("https://raw.githubusercontent.com/jouanyanou-png/meteo-monoblet/main/bourse.js?t="+Date.now(),{cache:"no-store"});
+    if(!r.ok) return;
+    const t=await r.text(), d=JSON.parse(t.slice(t.indexOf("=")+1).trim().replace(/;$/,""));
+    if(!window.BOURSE||d.maj>BOURSE.maj){ window.BOURSE=d; tout(); }
+  }catch(e){}
+}
+tout(); enLigne(); cryptos();
+setInterval(cryptos,60*1000);
+setInterval(enLigne,10*60*1000);
+</script>
+</body>
+</html>

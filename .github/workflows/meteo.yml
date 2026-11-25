@@ -38,7 +38,8 @@ jobs:
           for i in 1 2 3 4 5; do
             git fetch -q origin main && git reset -q --hard origin/main   # repartir de la derniere version
             timeout 600 python recuperer_meteo.py || echo "lecture ratee, on continue"
-            git add donnees.js
+            timeout 180 python recuperer_bourse.py || echo "bourse ratee, on continue"
+            git add donnees.js bourse.js
             if ! git diff --cached --quiet; then
               git commit -m "Meteo du $(date '+%d/%m %Hh%M')"
               git push || echo "envoi rate"
