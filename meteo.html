@@ -72,7 +72,7 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-
 .defile thead{position:sticky;top:0;z-index:1}
 .defile table.mc{font-size:12px}
 .defile .mc td{padding:2px;height:20px}
-.defile .mc td.ico svg{width:26px;height:19px}
+.defile .mc td.ico svg{width:34px;height:26px}
 .defile .mc td.dir svg{width:16px;height:16px}
 .barre4{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:.85rem;color:var(--muted)}
 .barre4 label{cursor:pointer;color:var(--fg)}
@@ -168,26 +168,26 @@ function fleche(dir){ // fl√®che noire, 16 directions comme Meteociel, pointe l√
 const DEFS_ICONES=`<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
 <radialGradient id="gSoleil" cx="40%" cy="35%" r="65%"><stop offset="0" stop-color="#fff6b0"/><stop offset=".55" stop-color="#ffd21f"/><stop offset="1" stop-color="#f29d00"/></radialGradient>
 <linearGradient id="gNuageClair" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#ffffff"/><stop offset="1" stop-color="#c9d3dc"/></linearGradient>
-<linearGradient id="gNuageGris" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#b9bfc5"/><stop offset="1" stop-color="#6e767d"/></linearGradient>
+<linearGradient id="gNuageGris" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#a3aab1"/><stop offset="1" stop-color="#5a6269"/></linearGradient>
 <linearGradient id="gNuageSombre" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9aa2aa"/><stop offset="1" stop-color="#4f5860"/></linearGradient>
 <radialGradient id="gLune" cx="35%" cy="35%" r="70%"><stop offset="0" stop-color="#fffbe6"/><stop offset="1" stop-color="#d9cf9e"/></radialGradient>
 </defs></svg>`;
 function icone(code,heure){
   const nuit=heure<7||heure>=19;
-  const soleil=(x,y,r)=>`<g stroke="#f2a900" stroke-width="1.6" stroke-linecap="round">${[0,45,90,135,180,225,270,315].map(a=>{const c=Math.cos(a*Math.PI/180),s=Math.sin(a*Math.PI/180);return `<line x1="${x+c*(r+2)}" y1="${y+s*(r+2)}" x2="${x+c*(r+5)}" y2="${y+s*(r+5)}"/>`}).join("")}</g><circle cx="${x}" cy="${y}" r="${r}" fill="url(#gSoleil)" stroke="#e08e00" stroke-width=".6"/>`;
-  const lune=(x,y,r)=>`<path d="M${x+r*.3} ${y-r} a${r} ${r} 0 1 0 ${r*.75} ${r*1.55} a${r*.8} ${r*.8} 0 1 1 ${-r*.75} ${-r*1.55}z" fill="url(#gLune)" stroke="#b8ad7a" stroke-width=".6"/>`;
+  const soleil=(x,y,r)=>`<g stroke="#c96a00" stroke-width="2.2" stroke-linecap="round">${[0,45,90,135,180,225,270,315].map(a=>{const c=Math.cos(a*Math.PI/180),s=Math.sin(a*Math.PI/180);return `<line x1="${x+c*(r+2)}" y1="${y+s*(r+2)}" x2="${x+c*(r+5)}" y2="${y+s*(r+5)}"/>`}).join("")}</g><circle cx="${x}" cy="${y}" r="${r}" fill="url(#gSoleil)" stroke="#8a4b00" stroke-width="1.2"/>`;
+  const lune=(x,y,r)=>`<path d="M${x+r*.3} ${y-r} a${r} ${r} 0 1 0 ${r*.75} ${r*1.55} a${r*.8} ${r*.8} 0 1 1 ${-r*.75} ${-r*1.55}z" fill="url(#gLune)" stroke="#5c5427" stroke-width="1.2"/>`;
   const astre=(x,y,r)=>nuit?lune(x,y,r*1.15):soleil(x,y,r);
   // nuage : 3 bosses + base plate, ombre douce dessous
-  const nuage=(dx,dy,sc,g)=>`<g transform="translate(${dx} ${dy}) scale(${sc})"><path d="M7 21 h19 a5 5 0 0 0 .6-9.96 A7.5 7.5 0 0 0 12.4 9.3 A5.2 5.2 0 0 0 7 21z" fill="#000" opacity=".12" transform="translate(.8 1.2)"/><path d="M7 21 h19 a5 5 0 0 0 .6-9.96 A7.5 7.5 0 0 0 12.4 9.3 A5.2 5.2 0 0 0 7 21z" fill="url(#${g})" stroke="#6f7880" stroke-width=".7"/></g>`;
-  const gouttes=(n,y0)=>Array.from({length:n},(_,k)=>{const x=11+k*(16/Math.max(1,n-1||1));return `<line x1="${x+1.5}" y1="${y0}" x2="${x-1}" y2="${y0+5}" stroke="#1f6fe0" stroke-width="1.8" stroke-linecap="round"/>`}).join("");
-  const flocons=y0=>[11,18,25].map(x=>`<g stroke="#5aa0e8" stroke-width="1.1" stroke-linecap="round"><line x1="${x-2}" y1="${y0}" x2="${x+2}" y2="${y0}"/><line x1="${x}" y1="${y0-2}" x2="${x}" y2="${y0+2}"/><line x1="${x-1.5}" y1="${y0-1.5}" x2="${x+1.5}" y2="${y0+1.5}"/><line x1="${x-1.5}" y1="${y0+1.5}" x2="${x+1.5}" y2="${y0-1.5}"/></g>`).join("");
-  const eclair=`<path d="M19 19 l-4 6 h3.2 l-2.2 5 6.5-7.2 h-3.4 l2.4-3.8z" fill="#ffd21f" stroke="#c98a00" stroke-width=".6"/>`;
+  const nuage=(dx,dy,sc,g)=>`<g transform="translate(${dx} ${dy}) scale(${sc})"><path d="M7 21 h19 a5 5 0 0 0 .6-9.96 A7.5 7.5 0 0 0 12.4 9.3 A5.2 5.2 0 0 0 7 21z" fill="#000" opacity=".12" transform="translate(.8 1.2)"/><path d="M7 21 h19 a5 5 0 0 0 .6-9.96 A7.5 7.5 0 0 0 12.4 9.3 A5.2 5.2 0 0 0 7 21z" fill="url(#${g})" stroke="#1f262c" stroke-width="1.4"/></g>`;
+  const gouttes=(n,y0)=>Array.from({length:n},(_,k)=>{const x=11+k*(16/Math.max(1,n-1||1));return `<line x1="${x+1.5}" y1="${y0}" x2="${x-1}" y2="${y0+5}" stroke="#003c9e" stroke-width="2.4" stroke-linecap="round"/>`}).join("");
+  const flocons=y0=>[11,18,25].map(x=>`<g stroke="#1d5fb0" stroke-width="1.5" stroke-linecap="round"><line x1="${x-2}" y1="${y0}" x2="${x+2}" y2="${y0}"/><line x1="${x}" y1="${y0-2}" x2="${x}" y2="${y0+2}"/><line x1="${x-1.5}" y1="${y0-1.5}" x2="${x+1.5}" y2="${y0+1.5}"/><line x1="${x-1.5}" y1="${y0+1.5}" x2="${x+1.5}" y2="${y0-1.5}"/></g>`).join("");
+  const eclair=`<path d="M19 19 l-4 6 h3.2 l-2.2 5 6.5-7.2 h-3.4 l2.4-3.8z" fill="#ffd21f" stroke="#5c3a00" stroke-width="1"/>`;
   let d;
   if(code==0) d=astre(18,15,7);
   else if(code==1) d=astre(13,11,6)+nuage(6,5,.75,"gNuageClair");
   else if(code==2) d=astre(11,10,6)+nuage(3,3,.95,"gNuageClair");
   else if(code==3) d=nuage(-1,-4,.8,"gNuageClair")+nuage(4,1,.95,"gNuageGris");
-  else if(code==45||code==48) d=nuage(1,-3,.95,"gNuageGris")+`<g stroke="#9aa3ab" stroke-width="2" stroke-linecap="round"><line x1="5" y1="22" x2="31" y2="22"/><line x1="8" y1="26" x2="28" y2="26"/></g>`;
+  else if(code==45||code==48) d=nuage(1,-3,.95,"gNuageGris")+`<g stroke="#4a535b" stroke-width="2.2" stroke-linecap="round"><line x1="5" y1="22" x2="31" y2="22"/><line x1="8" y1="26" x2="28" y2="26"/></g>`;
   else if(code>=51&&code<=57) d=nuage(1,-3,1,"gNuageGris")+gouttes(2,21);
   else if(code==61) d=nuage(1,-3,1,"gNuageGris")+gouttes(2,21);
   else if(code==63) d=nuage(1,-3,1,"gNuageGris")+gouttes(3,21);
