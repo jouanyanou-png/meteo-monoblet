@@ -6,7 +6,7 @@
 <title>Mes investissements</title>
 <style>
 /* Lisible d'un coup d'œil : gros chiffres, une couleur = un sens (vert monte, rouge baisse, toujours avec ▲▼ et le signe) */
-:root{--fond:#f4f6f9;--carte:#fff;--encre:#111827;--doux:#4b5563;--pale:#6b7280;--trait:#e5e7eb;--hausse:#047857;--baisse:#b91c1c;--ligne:#2563eb;--or:#a16207;--argent:#475569}
+:root{--fond:#fbe9ee;--carte:#fff;--encre:#111827;--doux:#4b5563;--pale:#6b7280;--trait:#e5e7eb;--hausse:#047857;--baisse:#b91c1c;--ligne:#2563eb;--or:#a16207;--argent:#475569}
 *{box-sizing:border-box}
 body{margin:0;background:var(--fond);color:var(--encre);font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
 .wrap{max-width:1250px;margin:0 auto;padding:18px 20px 60px}
@@ -127,16 +127,17 @@ function serie(id,plage){
 const ACTIFS=[
   {id:"djt",nom:"DJT",sous:"Trump Media & Technology Group (Nasdaq)",couleur:"var(--ligne)",enEuro:false},
   {id:"or",nom:"Or",sous:"prix de l'once (31,1 g), converti en euros",couleur:"var(--or)",enEuro:true},
-  {id:"argent",nom:"Argent",sous:"prix de l'once (31,1 g), converti en euros",couleur:"var(--argent)",enEuro:true},
+  {id:"argent",nom:"Argent",sous:"prix du kilo, converti en euros",couleur:"var(--argent)",enEuro:true,parKilo:true},
 ];
-function valeur(A,p){ return A.enEuro?p[1]/tauxA(p[0]):p[1]; }
+function valeur(A,p){ return (A.enEuro?p[1]/tauxA(p[0]):p[1])*(A.parKilo?ONCE_PAR_KG:1); }
 function carteCours(A){
   const S=BOURSE[A.id];
   if(!S) return `<div class="carte"><div class="nom">${A.nom}</div><p class="err">Cours non lu.</p></div>`;
   const taux=BOURSE.eurusd?BOURSE.eurusd.prix:null;
   const varJour=S.veille?(S.prix/S.veille-1)*100:0;
   let gros,petit;
-  if(A.enEuro){ const e=S.prix/taux; gros=euro(e); petit=`${euro(e*ONCE_PAR_KG,0)} le kilo · ${dollar(S.prix)} l'once`; }
+  if(A.parKilo){ const e=S.prix/taux; gros=euro(e*ONCE_PAR_KG,0)+'<span style="font-size:18px;font-weight:600"> le kilo</span>'; petit=`${euro(e)} l'once · ${dollar(S.prix)} l'once`; }
+  else if(A.enEuro){ const e=S.prix/taux; gros=euro(e); petit=`${euro(e*ONCE_PAR_KG,0)} le kilo · ${dollar(S.prix)} l'once`; }
   else{ gros=dollar(S.prix); petit=taux?`soit ${euro(S.prix/taux)} par action`:""; }
   return `<div class="carte" id="carte-${A.id}">
     <div class="titre-cours"><div class="nom">${A.nom}<small>${A.sous}</small></div>
