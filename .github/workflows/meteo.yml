@@ -44,7 +44,7 @@ jobs:
               git commit -m "Meteo du $(date '+%d/%m %Hh%M')"
               git push || echo "envoi rate"
             fi
-            [ $i -lt 5 ] && sleep 3540
+            if [ $i -lt 5 ]; then sleep 3540; fi
           done
       - name: Se relancer pour la suite
         if: always() && github.ref == 'refs/heads/main'
