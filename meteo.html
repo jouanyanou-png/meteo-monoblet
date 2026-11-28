@@ -76,10 +76,6 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-
 .defile .mc td.dir svg{width:16px;height:16px}
 .barre4{display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;font-size:.85rem;color:var(--muted)}
 .barre4 label{cursor:pointer;color:var(--fg)}
-.seul{display:flex;justify-content:center;gap:10px}
-.seul td.jour span{position:sticky;display:inline-block}
-#moyG{scrollbar-width:none}
-.seul .bloc{width:max-content}
 /* Sous les météos : carte de la mer et autre lieu */
 .bas{margin:34px auto 0;max-width:1100px}
 .bas h2{font-size:22px;margin:0 0 10px;color:#000066}
@@ -122,10 +118,6 @@ table.mc{border-collapse:collapse;font-family:Verdana,Arial,Helvetica,sans-serif
 <nav class="menu-tb" aria-label="Pages"><a href="/">🏠 Tableau de bord</a><a href="/meteo" aria-current="page">☀️ Météo</a><a href="/actualites">📰 Actualités</a><a href="/investissements">📈 Investissements</a></nav>
   <div class="top">
     <div><h1>Météo Monoblet</h1><div class="maj" id="maj">Chargement…</div></div>
-    <div class="versions" role="group" aria-label="Choisir la version">
-      <button data-v="5">Moyenne</button>
-      <button data-v="4">4 tableaux</button>
-    </div>
   </div>
   <div id="contenu"></div>
   <section class="bas" id="mer" aria-labelledby="merTitre">
@@ -153,11 +145,7 @@ table.mc{border-collapse:collapse;font-family:Verdana,Arial,Helvetica,sans-serif
 <script src="meteo-outils.js"></script>
 <script>
 
-let version="5";
-try{version=localStorage.getItem("version")||"5"}catch(e){}
-if(version!=="4"&&version!=="5") version="5";
-if(location.hash==="#moyenne") version="5";
-if(location.hash==="#tableau") version="4";
+const version="4";   // la Moyenne est sur le tableau de bord : ici, les 4 tableaux
 
 let ensemble=false; try{ensemble=localStorage.getItem("ensemble")==="1"}catch(e){}
 // pluie sans mm (Météo-France, Météo Languedoc) : niveau lu dans le ciel, mêmes couleurs que les mm
@@ -229,56 +217,6 @@ function brancherDefilement(){
   const c=document.getElementById("ensemble");
   if(c) c.addEventListener("change",()=>{ensemble=c.checked; try{localStorage.setItem("ensemble",ensemble?"1":"0")}catch(e){}});
 }
-
-function v5(){
-  const D=window.DONNEES;
-  if(!D) return '<div class="err">Les données des 4 sites ne sont pas encore là.</div>';
-  const L=moyenneLignes(D);
-  const parJour={}; L.forEach(l=>{const j=l.t.slice(0,10); parJour[j]=(parJour[j]||0)+1;});
-  const v5r=x=>x==null?"--":Math.round(x/5)*5;
-  let h=`<div class="barre4"><span>Moyenne de Meteociel, Météo-France, Météo Agricole et Météo Languedoc · lu à ${new Date(D.maj).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}</span>
-    <span><b style="background:#66FF66;padding:0 6px">oui</b> les sites sont d'accord · <b style="background:#FFFF09;padding:0 6px">plutôt</b> · <b style="background:#FF9900;padding:0 6px">non</b> pas d'accord : regarde les 4 tableaux</span></div>
-    ${DEFS_ICONES}<div class="seul">`;
-  const c=tableMoyenne(L,4);
-  // 2 tableaux côte à côte : celui de droite est la suite de celui de gauche
-  return h+`<div class="bloc"><div class="bloc-titre">Moyenne des 4 météos<span>${Object.keys(parJour).length} jours</span></div><div class="defile" id="moyG">${c}</div></div>`+
-    `<div class="bloc"><div class="bloc-titre">Suite →<span>&nbsp;</span></div><div class="defile" id="moyD">${c}</div></div></div>`;
-}
-// la Moyenne : 2 tableaux centrés, aussi grands que possible, jusqu'au bas de l'écran
-function ajusterMoyenne(){
-  const q=document.querySelector(".seul"); if(!q) return;
-  const G=document.getElementById("moyG"), D=document.getElementById("moyD"); if(!G||!D) return;
-  const titre=q.querySelector(".bloc-titre").offsetHeight;
-  q.style.zoom=1;
-  const larg=[...q.querySelectorAll(".bloc")].reduce((s,b)=>s+b.offsetWidth,0)+10;
-  const z=Math.max(0.5,Math.min(1.25,(q.parentElement.clientWidth-8)/larg));
-  q.style.zoom=z;
-  const haut=Math.max(200,(window.innerHeight-q.getBoundingClientRect().top-12)/z-titre)+"px";
-  const th=G.querySelector("thead").offsetHeight, tb=G.querySelector("tbody");
-  const ligne=tb.offsetHeight/tb.rows.length;                 // hauteur d'une ligne
-  const n=Math.max(5,Math.floor((parseFloat(haut)-th)/ligne)); // lignes entières seulement
-  G.style.height=D.style.height=(th+n*ligne)+"px"; G.style.maxHeight=D.style.maxHeight="none";
-  pasLigne=ligne;
-  q.querySelectorAll("td.jour span").forEach(s=>s.style.top=(th+2)+"px");
-  caler("G");
-}
-// décalage = hauteur visible des lignes : la 1re ligne de droite suit la dernière de gauche
-function caler(qui){
-  const G=document.getElementById("moyG"), D=document.getElementById("moyD"); if(!G||!D) return;
-  const dec=Math.round((G.clientHeight-G.querySelector("thead").offsetHeight)/pasLigne)*pasLigne;
-  const max=Math.max(0,G.scrollHeight-G.clientHeight-dec);
-  let p=qui==="D"?D.scrollTop-dec:G.scrollTop;
-  p=Math.max(0,Math.min(max,p));
-  calage=true; G.scrollTop=p; D.scrollTop=p+dec;
-  requestAnimationFrame(()=>calage=false);
-}
-let calage=false, pasLigne=1;
-function brancherMoyenne(){
-  const G=document.getElementById("moyG"), D=document.getElementById("moyD"); if(!G||!D) return;
-  G.addEventListener("scroll",()=>{if(!calage) caler("G");});
-  D.addEventListener("scroll",()=>{if(!calage) caler("D");});
-}
-window.addEventListener("resize",()=>{if(version=="5") ajusterMoyenne();});
 
 // ---------- Petit assistant gratuit (sans IA) : comprend des mots-clés et répond avec la Moyenne des 4 météos ----------
 const Assistant=(function(){
@@ -452,16 +390,11 @@ const Assistant=(function(){
 })();
 
 function afficher(){
-  document.querySelectorAll(".versions button").forEach(b=>b.setAttribute("aria-pressed",b.dataset.v==version));
-  document.querySelector(".wrap").classList.toggle("large",version=="4"||version=="5");
+  document.querySelector(".wrap").classList.add("large");
   if(window.DONNEES) document.getElementById("maj").textContent="Mis à jour à "+new Date(window.DONNEES.maj).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
-  document.getElementById("contenu").innerHTML={"4":v4,"5":v5}[version]();
-  if(version=="4"){ brancherDefilement(); ajusterTaille(); requestAnimationFrame(ajusterTaille); }
-  if(version=="5"){ brancherMoyenne(); ajusterMoyenne(); requestAnimationFrame(ajusterMoyenne); }
+  document.getElementById("contenu").innerHTML=v4();
+  brancherDefilement(); ajusterTaille(); requestAnimationFrame(ajusterTaille);
 }
-document.querySelectorAll(".versions button").forEach(b=>b.addEventListener("click",()=>{
-  version=b.dataset.v; try{localStorage.setItem("version",version)}catch(e){} afficher();
-}));
 // Sur internet : les chiffres les plus récents sont lus sur GitHub (actualisés toutes les heures)
 async function donneesEnLigne(){
   try{
