@@ -201,10 +201,10 @@ function ajusterTaille(){
       d.style.maxHeight=Math.max(200,(window.innerHeight-haut-12)/z-titre)+"px";});};
   // 1) taille normale, avec les barres de défilement déjà présentes (elles prennent de la place)
   q.style.zoom=1; hauteurs(1);
-  // 2) on mesure la largeur réelle des 4 tableaux et on rétrécit juste ce qu'il faut (petite marge)
+  // 2) on mesure la largeur réelle des 4 tableaux et on les agrandit (ou rétrécit) pour prendre toute la largeur, sans déborder
   const blocs=q.children, dispo=q.parentElement.clientWidth;
   const besoin=blocs[blocs.length-1].getBoundingClientRect().right-blocs[0].getBoundingClientRect().left;
-  const z=Math.min(1,(dispo-4)/besoin);
+  const z=Math.min(1.8,(dispo-8)/besoin);
   q.style.zoom=z; hauteurs(z);
 }
 window.addEventListener("resize",()=>{if(version=="4") ajusterTaille();});
