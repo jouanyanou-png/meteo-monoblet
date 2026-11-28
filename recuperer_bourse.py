@@ -60,7 +60,7 @@ def cryptos():
     return {nom: historique(sym) for nom, sym in CRYPTOS.items()}
 
 
-def actualites(nombre=12):
+def actualites(nombre=8):
     """Plusieurs recherches (Bing renvoie parfois tres peu de resultats au robot), sans doublons,
     completees par les actus encore recentes de la lecture d'avant."""
     infos, vus = [], set()
@@ -86,6 +86,32 @@ def actualites(nombre=12):
         raise RuntimeError("aucune actualite")
     infos.sort(key=lambda a: a.get("date") or "", reverse=True)
     return infos[:nombre]
+
+
+def actus_generales(nombre=8):
+    """Les titres du moment (flux RSS de franceinfo, avec photo)."""
+    rss = lire("https://www.francetvinfo.fr/titres.rss")
+    infos = []
+    for item in re.findall(r"<item>(.*?)</item>", rss, re.S):
+        def champ(nom):
+            m = re.search(rf"<{nom}>(.*?)</{nom}>", item, re.S)
+            return html.unescape(m.group(1).replace("<![CDATA[", "").replace("]]>", "").strip()) if m else ""
+        image = re.search(r'<enclosure[^>]*url="([^"]+)"', item)
+        try:
+            date = dt.datetime.strptime(champ("pubDate"), "%a, %d %b %Y %H:%M:%S %z").astimezone(dt.timezone.utc).isoformat()
+        except ValueError:
+            date = None
+        lien = champ("link").split("#")[0]
+        if not lien.startswith("https://") or not champ("title"):
+            continue
+        infos.append({"titre": champ("title"), "resume": champ("description"), "source": "franceinfo",
+                      "image": image.group(1) if image and image.group(1).startswith("https://") else "",
+                      "lien": lien, "date": date})
+        if len(infos) >= nombre:
+            break
+    if not infos:
+        raise RuntimeError("aucune actualite generale")
+    return infos
 
 
 def actualites_bing(recherche):
@@ -117,7 +143,7 @@ def main():
     except Exception:
         avant = {}
     taches = [("djt", lambda: yahoo("DJT")), ("or", lambda: yahoo("GC=F")), ("argent", lambda: yahoo("SI=F")),
-              ("eurusd", lambda: yahoo("EURUSD=X")), ("actus", actualites),
+              ("eurusd", lambda: yahoo("EURUSD=X")), ("actus", actualites), ("actus_fr", actus_generales),
               ("cryptos", cryptos)]
     for nom, f in taches:
         try:

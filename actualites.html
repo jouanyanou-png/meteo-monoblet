@@ -21,6 +21,10 @@ h1{margin:0;font-size:26px}
 .actu p{margin:0 0 8px;color:var(--doux);font-size:15px}
 .actu .src{font-size:13px;color:var(--pale)}
 .err{color:#b91c1c}
+.onglets{display:flex;gap:8px;flex-wrap:wrap;margin:0 0 16px}
+.onglets button{font:600 18px system-ui,sans-serif;padding:10px 20px;border-radius:12px;border:2px solid #d6cfc4;background:#fff;color:#1f2937;cursor:pointer}
+.onglets button:hover{border-color:#2563eb}
+.onglets button[aria-selected=true]{background:#1f2937;color:#fff;border-color:#1f2937}
 .menu-tb{display:flex;gap:6px;flex-wrap:wrap;padding:10px 0 12px;font:600 16px system-ui,sans-serif}
 .menu-tb a{color:#1f2937;text-decoration:none;padding:7px 14px;border-radius:10px;background:#fff;border:1px solid #e5e7eb}
 .menu-tb a:hover{border-color:#2563eb}.menu-tb a[aria-current=page]{background:#1f2937;color:#fff;border-color:#1f2937}
@@ -30,10 +34,14 @@ h1{margin:0;font-size:26px}
 <div class="wrap">
   <nav class="menu-tb" aria-label="Pages"><a href="/">🏠 Tableau de bord</a><a href="/meteo">☀️ Météo</a><a href="/actualites" aria-current="page">📰 Actualités</a><a href="/investissements">📈 Investissements</a></nav>
   <header class="haut">
-    <h1>Actualités Trump</h1>
+    <h1>Actualités</h1>
     <span class="maj" id="maj"></span>
   </header>
-  <div class="actus" id="actus"><p>Chargement…</p></div>
+  <div class="onglets" role="tablist" aria-label="Choisir les actualités">
+    <button type="button" role="tab" data-o="trump" aria-controls="actus">Actualités Media Trump</button>
+    <button type="button" role="tab" data-o="france" aria-controls="actus">Actualités</button>
+  </div>
+  <div class="actus" id="actus" role="tabpanel"><p>Chargement…</p></div>
 </div>
 <script src="bourse.js"></script>
 <script>
@@ -45,8 +53,10 @@ function depuis(iso){
   if(m<1440) return "il y a "+Math.round(m/60)+" h";
   return "il y a "+Math.round(m/1440)+" j";
 }
+let onglet=location.hash==="#france"?"france":"trump";
 function afficher(){
-  const A=(window.BOURSE&&BOURSE.actus)||[];
+  document.querySelectorAll(".onglets button").forEach(b=>b.setAttribute("aria-selected",b.dataset.o===onglet));
+  const A=((window.BOURSE&&(onglet==="france"?BOURSE.actus_fr:BOURSE.actus))||[]).slice(0,8);
   if(window.BOURSE) document.getElementById("maj").textContent="lues à "+new Date(BOURSE.maj).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+" · mises à jour toutes les heures";
   document.getElementById("actus").innerHTML=A.length?A.map(a=>{
     const lien=/^https:\/\//.test(a.lien)?a.lien:"#";
@@ -64,6 +74,7 @@ async function enLigne(){
     if(!window.BOURSE||d.maj>BOURSE.maj){ window.BOURSE=d; afficher(); }
   }catch(e){}
 }
+document.querySelectorAll(".onglets button").forEach(b=>b.onclick=()=>{onglet=b.dataset.o; history.replaceState(null,"",onglet==="france"?"#france":"#trump"); afficher();});
 afficher(); enLigne(); setInterval(enLigne,10*60*1000);
 </script>
 </body>
