@@ -1,7 +1,12 @@
 {
-  "rewrites": [{ "source": "/", "destination": "/meteo.html" }, { "source": "/investissements", "destination": "/investissements.html" }],
+  "rewrites": [
+    { "source": "/", "destination": "/accueil.html" },
+    { "source": "/meteo", "destination": "/meteo.html" },
+    { "source": "/investissements", "destination": "/investissements.html" }
+  ],
   "headers": [
     { "source": "/bourse.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
-    { "source": "/donnees.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
+    { "source": "/donnees.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
+    { "source": "/meteo-outils.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
   ]
 }
