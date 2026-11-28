@@ -10,10 +10,24 @@
 .cote span.item em{font-style:normal;font-size:12px;border:1px solid #4b5f53;border-radius:8px;padding:1px 6px;margin-left:auto}
 .cote .ico{width:22px;text-align:center;font-size:18px}
 @media (min-width:900px){
-  body{padding-left:250px}
-  .cote{position:fixed;left:0;top:0;bottom:0;width:250px;padding:22px 12px;overflow:auto;display:flex;flex-direction:column;gap:2px}
-  .cote .marque{margin-bottom:14px}
+  body{padding-left:var(--larg-menu,250px)}
+  .cote{position:fixed;left:0;top:0;bottom:0;width:var(--larg-menu,250px);padding:22px 12px;overflow:auto;display:flex;flex-direction:column;gap:2px}
+  .cote .marque{margin-bottom:14px;padding-right:40px}
+  /* bouton pour réduire / agrandir, et poignée pour régler la largeur à la souris */
+  .cote .plier{position:absolute;top:18px;right:10px;width:34px;height:34px;border-radius:9px;border:1px solid #4b5f53;background:#2c3b33;color:#fff;font:700 18px system-ui,sans-serif;cursor:pointer;line-height:1}
+  .cote .plier:hover,.cote .plier:focus-visible{background:#3d5146;outline:2px solid #e08a4b}
+  .cote .poignee{position:fixed;top:0;bottom:0;left:calc(var(--larg-menu,250px) - 4px);width:8px;cursor:col-resize;z-index:21}
+  .cote .poignee:hover,.cote .poignee.tire{background:#e08a4b66}
+  /* menu réduit : seulement les pictos */
+  html.menu-reduit body{padding-left:72px}
+  html.menu-reduit .cote{width:72px;padding:64px 8px 22px}
+  html.menu-reduit .cote .marque,html.menu-reduit .cote .rubrique,html.menu-reduit .cote em{display:none}
+  html.menu-reduit .cote a,html.menu-reduit .cote span.item{font-size:0;justify-content:center;padding:12px 0;gap:0}
+  html.menu-reduit .cote .ico{font-size:22px;width:auto}
+  html.menu-reduit .cote .plier{left:50%;right:auto;transform:translateX(-50%)}
+  html.menu-reduit .cote .poignee{display:none}
 }
+@media (max-width:899px){.cote .plier,.cote .poignee{display:none}}
 @media (max-width:899px){
   .cote{display:flex;flex-wrap:wrap;gap:4px;padding:10px 12px;margin-bottom:12px}
   .cote .marque,.cote .rubrique,.cote span.item{display:none}

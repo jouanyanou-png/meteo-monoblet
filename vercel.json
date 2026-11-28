@@ -10,6 +10,7 @@
     { "source": "/donnees.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
     { "source": "/meteo-outils.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
     { "source": "/assistant.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
+    { "source": "/menu.js", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] },
     { "source": "/menu.css", "headers": [{ "key": "Cache-Control", "value": "no-cache" }] }
   ]
 }
