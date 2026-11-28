@@ -67,15 +67,11 @@ table.crypto{width:100%;border-collapse:collapse;font-size:17px}
 <body>
 <div class="wrap">
   <style>.menu-tb{display:flex;gap:6px;flex-wrap:wrap;padding:10px 0 12px;font:600 16px system-ui,sans-serif}.menu-tb a{color:#1f2937;text-decoration:none;padding:7px 14px;border-radius:10px;background:#fff;border:1px solid #e5e7eb}.menu-tb a:hover{border-color:#2563eb}.menu-tb a[aria-current=page]{background:#1f2937;color:#fff;border-color:#1f2937}</style>
-<nav class="menu-tb" aria-label="Pages"><a href="/">🏠 Tableau de bord</a><a href="/meteo">☀️ Météo</a><a href="/investissements" aria-current="page">📈 Investissements</a></nav>
+<nav class="menu-tb" aria-label="Pages"><a href="/">🏠 Tableau de bord</a><a href="/meteo">☀️ Météo</a><a href="/actualites">📰 Actualités</a><a href="/investissements" aria-current="page">📈 Investissements</a></nav>
   <header class="haut">
     <h1>Mes investissements</h1>
     <span class="maj" id="maj"></span>
   </header>
-
-  <h2>Actualités Trump <small id="actusInfo"></small></h2>
-  <div class="actus" id="actus"></div>
-  <button class="plus" id="plusActus" type="button">Voir plus d'actualités</button>
 
   <h2>Cours <small>graphique : passe la souris dessus pour voir le prix d'un jour</small></h2>
   <div class="cours" id="cours"></div>
@@ -100,22 +96,6 @@ function depuis(iso){
   if(m<1440) return "il y a "+Math.round(m/60)+" h";
   return "il y a "+Math.round(m/1440)+" j";
 }
-
-// ---------- Actualités ----------
-let nbActus=6;
-function afficherActus(){
-  const A=(window.BOURSE&&BOURSE.actus)||[];
-  document.getElementById("actusInfo").textContent=A.length?"les dernières, comme sur un moteur de recherche":"";
-  document.getElementById("actus").innerHTML=A.length?A.slice(0,nbActus).map(a=>{
-    const lien=/^https:\/\//.test(a.lien)?a.lien:"#";
-    const photo=/^https:\/\//.test(a.image)?`style="background-image:url('${echap(a.image)}')"`:"";
-    return `<a class="actu" href="${echap(lien)}" target="_blank" rel="noopener">
-      <div class="photo" ${photo}>${photo?"":"📰"}</div>
-      <div class="texte"><h3>${echap(a.titre)}</h3><p>${echap(a.resume)}</p><div class="src">${echap(a.source)} · ${depuis(a.date)}</div></div></a>`;
-  }).join(""):'<p class="err">Les actualités n\'ont pas pu être lues.</p>';
-  document.getElementById("plusActus").style.display=A.length>nbActus?"":"none";
-}
-document.getElementById("plusActus").onclick=()=>{nbActus+=6; afficherActus();};
 
 // ---------- Cours : DJT, or, argent ----------
 const PLAGES=[["semaine","5 jours"],["1m","1 mois"],["6m","6 mois"],["an","1 an"]];
@@ -280,8 +260,8 @@ function afficherCryptos(){
 // ---------- Mise en route ----------
 function tout(){
   if(!window.BOURSE){ document.getElementById("cours").innerHTML='<p class="err">Les cours ne sont pas encore là.</p>'; return; }
-  document.getElementById("maj").textContent="Actualités et cours lus à "+new Date(BOURSE.maj).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
-  afficherActus(); afficherCours();
+  document.getElementById("maj").textContent="Cours lus à "+new Date(BOURSE.maj).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
+  afficherCours();
   if(cryptoOuverte&&derniereListe.length) afficherCryptos();
 }
 async function enLigne(){

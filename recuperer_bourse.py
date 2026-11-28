@@ -60,10 +60,38 @@ def cryptos():
     return {nom: historique(sym) for nom, sym in CRYPTOS.items()}
 
 
-def actualites(recherche="Trump", nombre=12):
+def actualites(nombre=12):
+    """Plusieurs recherches (Bing renvoie parfois tres peu de resultats au robot), sans doublons,
+    completees par les actus encore recentes de la lecture d'avant."""
+    infos, vus = [], set()
+    for recherche in ["Trump", "Donald Trump", "Trump Maison Blanche"]:
+        try:
+            for a in actualites_bing(recherche):
+                if a["lien"] not in vus and a["titre"]:
+                    vus.add(a["lien"]); infos.append(a)
+        except Exception as e:
+            print("actus", recherche, ":", e, file=sys.stderr)
+        if len(infos) >= nombre:
+            break
+    try:
+        t = SORTIE.read_text(encoding="utf-8")
+        avant = json.loads(t[t.index("=") + 1:].strip().rstrip(";")).get("actus", [])
+    except Exception:
+        avant = []
+    limite = (dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=3)).isoformat()
+    for a in avant:
+        if a.get("lien") not in vus and (a.get("date") or "") >= limite:
+            vus.add(a.get("lien")); infos.append(a)
+    if not infos:
+        raise RuntimeError("aucune actualite")
+    infos.sort(key=lambda a: a.get("date") or "", reverse=True)
+    return infos[:nombre]
+
+
+def actualites_bing(recherche):
     rss = lire(f"https://www.bing.com/news/search?q={urllib.parse.quote(recherche)}&format=rss&setlang=fr&cc=FR&mkt=fr-FR")
     infos = []
-    for item in re.findall(r"<item>(.*?)</item>", rss, re.S)[:nombre]:
+    for item in re.findall(r"<item>(.*?)</item>", rss, re.S):
         def champ(nom):
             m = re.search(rf"<{nom}>(.*?)</{nom}>", item, re.S)
             return html.unescape(html.unescape(m.group(1).strip())) if m else ""

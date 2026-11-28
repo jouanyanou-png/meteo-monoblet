@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Actualités</title>
+<style>
+:root{--fond:#f6f1ea;--carte:#fff;--encre:#111827;--doux:#4b5563;--pale:#6b7280}
+*{box-sizing:border-box}
+body{margin:0;background:var(--fond);color:var(--encre);font:16px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
+.wrap{max-width:1250px;margin:0 auto;padding:0 20px 60px}
+header.haut{display:flex;justify-content:space-between;align-items:baseline;flex-wrap:wrap;gap:8px;margin:6px 0 16px}
+h1{margin:0;font-size:26px}
+.maj{color:var(--pale);font-size:14px}
+.actus{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:14px}
+.actu{background:var(--carte);border-radius:14px;box-shadow:0 1px 3px #0001;overflow:hidden;text-decoration:none;color:inherit;display:flex;flex-direction:column}
+.actu:hover,.actu:focus-visible{box-shadow:0 4px 14px #0002;outline:2px solid #2563eb}
+.actu .photo{aspect-ratio:16/9;background:#e2e8f0 center/cover no-repeat;display:flex;align-items:center;justify-content:center;color:#94a3b8;font-size:34px}
+.actu .texte{padding:10px 14px 14px}
+.actu h3{font-size:17px;margin:0 0 6px;line-height:1.3}
+.actu p{margin:0 0 8px;color:var(--doux);font-size:15px}
+.actu .src{font-size:13px;color:var(--pale)}
+.err{color:#b91c1c}
+.menu-tb{display:flex;gap:6px;flex-wrap:wrap;padding:10px 0 12px;font:600 16px system-ui,sans-serif}
+.menu-tb a{color:#1f2937;text-decoration:none;padding:7px 14px;border-radius:10px;background:#fff;border:1px solid #e5e7eb}
+.menu-tb a:hover{border-color:#2563eb}.menu-tb a[aria-current=page]{background:#1f2937;color:#fff;border-color:#1f2937}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <nav class="menu-tb" aria-label="Pages"><a href="/">🏠 Tableau de bord</a><a href="/meteo">☀️ Météo</a><a href="/actualites" aria-current="page">📰 Actualités</a><a href="/investissements">📈 Investissements</a></nav>
+  <header class="haut">
+    <h1>Actualités Trump</h1>
+    <span class="maj" id="maj"></span>
+  </header>
+  <div class="actus" id="actus"><p>Chargement…</p></div>
+</div>
+<script src="bourse.js"></script>
+<script>
+const echap=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function depuis(iso){
+  if(!iso) return "";
+  const m=Math.round((Date.now()-new Date(iso))/6e4);
+  if(m<60) return "il y a "+Math.max(1,m)+" min";
+  if(m<1440) return "il y a "+Math.round(m/60)+" h";
+  return "il y a "+Math.round(m/1440)+" j";
+}
+function afficher(){
+  const A=(window.BOURSE&&BOURSE.actus)||[];
+  if(window.BOURSE) document.getElementById("maj").textContent="lues à "+new Date(BOURSE.maj).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+" · mises à jour toutes les heures";
+  document.getElementById("actus").innerHTML=A.length?A.map(a=>{
+    const lien=/^https:\/\//.test(a.lien)?a.lien:"#";
+    const photo=/^https:\/\//.test(a.image)?`style="background-image:url('${echap(a.image)}')"`:"";
+    return `<a class="actu" href="${echap(lien)}" target="_blank" rel="noopener">
+      <div class="photo" ${photo}>${photo?"":"📰"}</div>
+      <div class="texte"><h3>${echap(a.titre)}</h3><p>${echap(a.resume)}</p><div class="src">${echap(a.source)} · ${depuis(a.date)}</div></div></a>`;
+  }).join(""):'<p class="err">Les actualités n\'ont pas pu être lues.</p>';
+}
+async function enLigne(){
+  try{
+    const r=await fetch("https://raw.githubusercontent.com/jouanyanou-png/meteo-monoblet/main/bourse.js?t="+Date.now(),{cache:"no-store"});
+    if(!r.ok) return;
+    const t=await r.text(), d=JSON.parse(t.slice(t.indexOf("=")+1).trim().replace(/;$/,""));
+    if(!window.BOURSE||d.maj>BOURSE.maj){ window.BOURSE=d; afficher(); }
+  }catch(e){}
+}
+afficher(); enLigne(); setInterval(enLigne,10*60*1000);
+</script>
+</body>
+</html>
