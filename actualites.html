@@ -57,7 +57,10 @@ let onglet=location.hash==="#france"?"france":"trump";
 function afficher(){
   document.querySelectorAll(".onglets button").forEach(b=>b.setAttribute("aria-selected",b.dataset.o===onglet));
   const A=((window.BOURSE&&(onglet==="france"?BOURSE.actus_fr:BOURSE.actus))||[]).slice(0,8);
-  if(window.BOURSE) document.getElementById("maj").textContent="lues à "+new Date(BOURSE.maj).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+" · mises à jour toutes les heures";
+  const hc=iso=>new Date(iso).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}).replace(":","h");
+  if(window.BOURSE) document.getElementById("maj").textContent=onglet==="france"
+    ?"lues à "+hc(BOURSE.maj)+" · mises à jour toutes les heures"
+    :"veille du "+new Date(BOURSE.actus_maj||BOURSE.maj).toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})+" à "+hc(BOURSE.actus_maj||BOURSE.maj)+" · une fois par jour, à 8h";
   document.getElementById("actus").innerHTML=A.length?A.map(a=>{
     const lien=/^https:\/\//.test(a.lien)?a.lien:"#";
     const photo=/^https:\/\//.test(a.image)?`style="background-image:url('${echap(a.image)}')"`:"";

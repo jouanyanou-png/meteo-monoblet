@@ -145,6 +145,17 @@ def main():
     taches = [("djt", lambda: yahoo("DJT")), ("or", lambda: yahoo("GC=F")), ("argent", lambda: yahoo("SI=F")),
               ("eurusd", lambda: yahoo("EURUSD=X")), ("actus", actualites), ("actus_fr", actus_generales),
               ("cryptos", cryptos)]
+    # veille Trump : une seule fois par jour, a partir de 8h00 (heure de Paris)
+    maintenant = dt.datetime.now()
+    huit = maintenant.replace(hour=8, minute=0, second=0, microsecond=0)
+    if maintenant < huit:
+        huit -= dt.timedelta(days=1)
+    if avant.get("actus") and avant.get("actus_maj", "") >= huit.isoformat(timespec="minutes"):
+        taches = [t for t in taches if t[0] != "actus"]
+        resultat["actus"], resultat["actus_maj"] = avant["actus"], avant["actus_maj"]
+        print("actus Trump : deja lues ce matin, on garde")
+    else:
+        resultat["actus_maj"] = maintenant.isoformat(timespec="minutes")
     for nom, f in taches:
         try:
             try:
@@ -157,6 +168,8 @@ def main():
             traceback.print_exc()
             if nom in avant:  # on garde la derniere bonne lecture
                 resultat[nom] = avant[nom]
+                if nom == "actus":
+                    resultat["actus_maj"] = avant.get("actus_maj", avant.get("maj"))
                 print(f"{nom}: ERREUR {e}, on garde l'ancienne lecture", file=sys.stderr)
             else:
                 print(f"{nom}: ERREUR {e}", file=sys.stderr)

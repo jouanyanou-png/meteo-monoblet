@@ -1,7 +1,7 @@
 name: Actualiser la meteo
 
 # Le minuteur "schedule" de GitHub est peu fiable (souvent saute).
-# Donc chaque lancement tourne ~5h : il lit les sites toutes les heures,
+# Donc chaque lancement tourne ~5h : il lit les sites toutes les heures (a l'heure pile + 2 min),
 # puis se relance lui-meme a la fin. Le "schedule" reste en secours.
 on:
   schedule:
@@ -44,7 +44,8 @@ jobs:
               git commit -m "Meteo du $(date '+%d/%m %Hh%M')"
               git push || echo "envoi rate"
             fi
-            if [ $i -lt 5 ]; then sleep 3540; fi
+            # attendre la prochaine heure pile + 2 min (8h02, 9h02...) : la veille Trump tombe a 8h02
+            if [ $i -lt 5 ]; then sleep $(( 3600 - 10#$(date +%M) * 60 - 10#$(date +%S) + 120 )); fi
           done
       - name: Se relancer pour la suite
         if: always() && github.ref == 'refs/heads/main'

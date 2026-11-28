@@ -100,3 +100,46 @@ function moyenneLignes(D,liste){
   }
   return lignes;
 }
+
+// Couleurs reprises du code de Meteociel (valeurs brutes, pas arrondies)
+function couleurTemp(t){
+  const pal=[[-99,"#CC99FF"],[-3,"#9999FF"],[-1,"#99CCFF"],[1,"#66FFFF"],[3,"#66FF99"],[5,"#66FF66"],[7,"#66FF00"],[9,"#BFFA0E"],[11,"#FFFF09"],[13,"#FFD700"],[15,"#FFB000"],[17,"#FF9900"],[20,"#FF6600"],[25,"#FF3300"],[30,"#CC0000"]];
+  let c=pal[0][1]; for(const [s,col] of pal) if(t>=s) c=col; return c;
+}
+function couleurMoy(v){v=v??0;
+  if(v<2.5) return "#FFFFFF"; if(v<7.5) return "#97E6FF"; if(v<12.5) return "#33CCFF"; if(v<20) return "#0099FF"; if(v<30) return "#00FF99"; if(v<40) return "#FFFF09"; return "#FF9900";}
+function couleurRaf(v){v=v??0;
+  if(v<2.5) return "#FFFFFF"; if(v<10) return "#97E6FF"; if(v<22.5) return "#33CCFF"; if(v<32.5) return "#0099FF"; if(v<45) return "#00FF99"; if(v<60) return "#FFFF09"; return "#FF9900";}
+function couleurPluie(mm){
+  if(mm<0.2) return null; if(mm<1) return "#aaffff"; if(mm<2) return "#88d8d8"; if(mm<3.5) return "#55cccc"; return "#0050aa";}
+function couleurHum(h){
+  if(h<50) return "#aaaab0"; if(h<65) return "#a0a0a0"; if(h<75) return "#959595"; if(h<85) return "#909090"; if(h<95) return "#858585"; return "#808080";}
+const texteSur=c=>["#0050aa","#CC0000"].includes(c)?"#ffffff":"#000066";
+function fleche(dir){ // flèche noire, 16 directions comme Meteociel, pointe là où va le vent
+  const a=Math.round((dir??0)/22.5)*22.5;
+  return `<svg width="18" height="18" viewBox="0 0 18 18" style="transform:rotate(${a}deg)"><path d="M9 17 L3.5 10.5 H7 V1 H11 V10.5 H14.5 Z" fill="#000"/></svg>`;
+}
+const COULEUR_ACCORD={"oui":"#66FF66","plutôt":"#FFFF09","non":"#FF9900"};
+function tableMoyenne(L,total){
+  const parJour={}; L.forEach(l=>{const j=l.t.slice(0,10); parJour[j]=(parJour[j]||0)+1;});
+  const v5r=x=>x==null?"--":Math.round(x/5)*5;
+  let c=`<table class="mc"><thead><tr class="tete"><td rowspan="2">Jour</td><td rowspan="2">Heure</td><td rowspan="2">Temp.</td><td colspan="3">Vent km/h</td><td rowspan="2">Pluie<br>sur 3h</td><td rowspan="2">Temps</td><td rowspan="2">D'accord ?</td><td rowspan="2" title="Nombre de sites qui prévoient cette heure">Sites</td></tr>
+    <tr class="tete"><td>dir.</td><td>moy.</td><td>raf.</td></tr></thead><tbody>`;
+  let prec="", n=-1;
+  L.forEach(x=>{
+    const t=new Date(x.t), j=x.t.slice(0,10), nouveau=j!==prec; prec=j; if(nouveau) n++;
+    const ct=couleurTemp(x.temp), cm=couleurMoy(x.moy), cr=couleurRaf(x.raf), cp=x.pluie==null?null:couleurPluie(x.pluie);
+    c+=`<tr style="background:${n%2?"#DDEEFF":"#CCFFFF"}">`;
+    if(nouveau) c+=`<td class="jour" rowspan="${parJour[j]}"><span>${JOURS[t.getDay()].replace(".","")}<br>${t.getDate()}</span></td>`;
+    c+=`<td>${String(t.getHours()).padStart(2,"0")}:00</td>`+
+      `<td class="c" style="background:${ct};color:${texteSur(ct)}">${Math.round(x.temp)} °C</td>`+
+      (x.dir==null?`<td class="c">--</td>`:`<td class="c dir" style="background:${cm}">${fleche(x.dir)}</td>`)+
+      `<td class="c" style="background:${x.moy==null?"transparent":cm}">${v5r(x.moy)}</td>`+
+      `<td class="c" style="background:${x.raf==null?"transparent":cr}">${v5r(x.raf)}</td>`+
+      (cp?`<td class="c" style="background:${cp};color:${texteSur(cp)}">${x.pluie.toFixed(1)} mm</td>`:`<td class="c">--</td>`)+
+      `<td class="ico">${icone(x.code,t.getHours())}</td>`+
+      `<td class="c" style="background:${COULEUR_ACCORD[x.accord]};font-weight:bold" title="${x.detail}">${x.accord}</td>`+
+      `<td class="c">${x.n}/${total}</td></tr>`;
+  });
+  return c+`</tbody></table>`;
+}

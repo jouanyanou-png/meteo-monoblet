@@ -44,6 +44,12 @@ h2 small{font-size:14px;font-weight:400;color:var(--pale)}
 .graph svg{display:block;width:100%;height:190px;overflow:visible}
 .bulle{position:absolute;pointer-events:none;background:#111827;color:#fff;font-size:13px;padding:4px 8px;border-radius:6px;white-space:nowrap;transform:translate(-50%,-115%);display:none}
 .note{font-size:12px;color:var(--pale);margin-top:4px}
+.direct{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.direct a{display:inline-block;font:600 15px system-ui,sans-serif;text-decoration:none;border-radius:10px;padding:8px 14px}
+.direct a.principal{background:var(--ligne);color:#fff}
+.direct a.principal:hover{background:#1d4ed8}
+.direct a.autre{background:#fff;color:var(--encre);border:1px solid #cbd5e1}
+.direct a.autre:hover{border-color:var(--ligne)}
 
 /* Cryptos */
 table.crypto{width:100%;border-collapse:collapse;font-size:17px}
@@ -114,9 +120,12 @@ function serie(id,plage){
   return pts;
 }
 const ACTIFS=[
-  {id:"djt",nom:"DJT",sous:"Trump Media & Technology Group (Nasdaq)",couleur:"var(--ligne)",enEuro:false},
-  {id:"or",nom:"Or",sous:"prix de l'once (31,1 g), converti en euros",couleur:"var(--or)",enEuro:true},
-  {id:"argent",nom:"Argent",sous:"prix du kilo, converti en euros",couleur:"var(--argent)",enEuro:true,parKilo:true},
+  {id:"djt",nom:"DJT",sous:"Trump Media & Technology Group (Nasdaq)",couleur:"var(--ligne)",enEuro:false,
+    direct:"https://fr.finance.yahoo.com/quote/DJT/"},
+  {id:"or",nom:"Or",sous:"prix de l'once (31,1 g), converti en euros",couleur:"var(--or)",enEuro:true,
+    direct:"https://fr.finance.yahoo.com/quote/GC%3DF/",autre:["https://or.fr/cours/or","or.fr"]},
+  {id:"argent",nom:"Argent",sous:"prix du kilo, converti en euros",couleur:"var(--argent)",enEuro:true,parKilo:true,
+    direct:"https://fr.finance.yahoo.com/quote/SI%3DF/",autre:["https://www.bdor.fr/cours-argent","bdor.fr"]},
 ];
 function valeur(A,p){ return (A.enEuro?p[1]/tauxA(p[0]):p[1])*(A.parKilo?ONCE_PAR_KG:1); }
 function carteCours(A){
@@ -134,6 +143,7 @@ function carteCours(A){
       <div class="${classeVar(varJour)}">${pct(varJour)} <span style="font-weight:400;color:var(--pale)">depuis hier</span></div></div></div>
     <div class="plages">${PLAGES.map(([k,l])=>`<button type="button" data-id="${A.id}" data-p="${k}" aria-pressed="${plageChoisie[A.id]===k}">${l}</button>`).join("")}</div>
     <div class="graph" id="g-${A.id}"></div>
+    <div class="direct"><a class="principal" href="${A.direct}" target="_blank" rel="noopener">⏱ Voir en direct, minute par minute (Yahoo Finance)</a>${A.autre?`<a class="autre" href="${A.autre[0]}" target="_blank" rel="noopener">Prix en comptoir sur ${A.autre[1]}</a>`:""}</div>
     ${A.id!=="djt"?'<div class="note">Cours mondial (COMEX). Le prix d\'achat en comptoir (or.fr, bdor.fr) est un peu plus élevé.</div>':''}
   </div>`;
 }
@@ -212,8 +222,10 @@ function ouvrirHisto(){
   const attente=window.BOURSE&&BOURSE.cryptos?"":'<p class="note">L\'historique long arrive avec la prochaine mise à jour (dans l\'heure).</p>';
   const h=document.createElement("tr"); h.className="histo";
   h.innerHTML=`<td colspan="5"><div class="plages">${PLAGES_C.map(([k,l])=>`<button type="button" data-p="${k}" aria-pressed="${plageChoisie[A.id]===k}">${l}</button>`).join("")}</div>
-    <div class="graph" id="g-${A.id}"></div>${attente}</td>`;
+    <div class="graph" id="g-${A.id}"></div>${attente}
+    <div class="direct"><a class="principal" href="https://www.coingecko.com/fr/pi%C3%A8ces/${encodeURIComponent(c.id)}" target="_blank" rel="noopener">⏱ Voir ${echap(c.name)} en direct, minute par minute (CoinGecko)</a><a class="autre" href="https://coinmarketcap.com/fr/currencies/${encodeURIComponent(c.id==="ripple"?"xrp":c.id)}/" target="_blank" rel="noopener">Sur CoinMarketCap</a></div></td>`;
   tr.after(h);
+  h.querySelectorAll(".direct a").forEach(a=>a.onclick=e=>e.stopPropagation());
   h.querySelectorAll("button").forEach(bt=>bt.onclick=e=>{e.stopPropagation();
     plageChoisie[A.id]=bt.dataset.p; h.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===bt)); dessinerCourbe(A);});
   dessinerCourbe(A);

@@ -23,6 +23,24 @@ a.tuile:hover,a.tuile:focus-visible{border-color:var(--bleu);outline:none}
 .tuile h2{margin:0 0 12px;font-size:21px;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
 .tuile h2 small{font-size:14px;font-weight:400;color:var(--pale)}
 .ouvrir{font-size:15px;color:var(--bleu);font-weight:600;margin-top:12px}
+/* Look Meteociel (valeurs reprises de leur code) */
+table.mc{border-collapse:collapse;font-family:Verdana,Arial,Helvetica,sans-serif;font-size:12px;color:#000066;margin:0 auto;background:#fff}
+.mc td{border:1px solid #a0a0b0;padding:2px;white-space:nowrap}
+.mc tr.tete td{background:#aaaaff;text-align:center;font-weight:normal}
+.mc tr.tete td.mod{font-weight:bold}
+.mc .sep{border-left:3px solid #6666cc}
+.mc td.jour{text-align:center;vertical-align:middle}
+.mc td.c{text-align:center}
+.mc td.ico{text-align:center;padding:0 2px}
+.mc td.ico svg,.mc td.dir svg{display:block;margin:auto}
+/* météo : le tableau Moyenne dans la case */
+.moy{max-height:440px;overflow:auto;border-radius:8px;border:1px solid #d7dbe6}
+.moy thead{position:sticky;top:0;z-index:1}
+.moy table.mc{width:100%}
+.moy .mc td{padding:2px 3px;height:22px}
+.moy .mc td.ico svg{width:30px;height:21px;display:block;margin:auto}
+.moy .mc td.dir svg{width:16px;height:16px;display:block;margin:auto}
+.legende{font-size:13px;color:var(--pale);margin-top:8px}
 /* météo */
 .jours{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
 .jour{background:#eef6ff;border-radius:12px;padding:10px 6px;text-align:center}
@@ -38,10 +56,10 @@ a.tuile:hover,a.tuile:focus-visible{border-color:var(--bleu);outline:none}
 /* investissements */
 .tuile.invest{background:var(--rose)}
 .cours{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.c{background:#fff;border-radius:12px;padding:10px 12px}
-.c .nom{font-size:14px;color:var(--pale)}
-.c .val{font-size:22px;font-weight:700;letter-spacing:-.3px}
-.c .var{font-size:14px;font-weight:700}
+.cc{background:#fff;border-radius:12px;padding:10px 12px}
+.cc .nom{font-size:14px;color:var(--pale)}
+.cc .val{font-size:22px;font-weight:700;letter-spacing:-.3px}
+.cc .var{font-size:14px;font-weight:700}
 .h{color:var(--hausse)} .b{color:var(--baisse)}
 /* actualités */
 .tuile.large{grid-column:1/-1}
@@ -132,7 +150,11 @@ function resumeMeteo(){
       <div class="ciel">${meteo(code)[1]}</div>
       <div class="pl">${pluie>=0.5?"💧 "+pluie.toFixed(pluie<10?1:0).replace(".",",")+" mm":"sec"}</div></div>`;
   }).join("");
-  boite.innerHTML=`${DEFS_ICONES}<div class="maintenant">${icone(ici.code,new Date(ici.t).getHours())}<span class="gros">${Math.round(ici.temp)} °C</span><span>${meteo(ici.code)[1]} · vent ${Math.round(ici.moy??0)} km/h</span></div><div class="jours">${cartes}</div>`;
+  // le tableau « Moyenne des 4 météos », à partir de maintenant
+  const debut=Date.now()-3*36e5, Lt=L.filter(l=>new Date(l.t)>=debut);
+  boite.innerHTML=`${DEFS_ICONES}<div class="maintenant">${icone(ici.code,new Date(ici.t).getHours())}<span class="gros">${Math.round(ici.temp)} °C</span><span>${meteo(ici.code)[1]} · vent ${Math.round(ici.moy??0)} km/h</span></div>
+    <div class="moy">${tableMoyenne(Lt,4)}</div>
+    <div class="legende">Moyenne de Meteociel, Météo-France, Météo Agricole et Météo Languedoc · fais défiler pour les jours suivants</div>`;
 }
 
 // ---------- Investissements : or, argent, DJT (robot) + Bitcoin (en direct) ----------
@@ -146,10 +168,10 @@ function resumeBourse(){
   document.getElementById("bourseMaj").textContent="lu à "+heureCourte(B.maj);
   const taux=B.eurusd&&B.eurusd.prix, v=S=>S&&S.veille?(S.prix/S.veille-1)*100:null;
   const cases=[];
-  if(B.or&&taux) cases.push(`<div class="c"><div class="nom">Or · l'once</div><div class="val">${nombre(B.or.prix/taux,0)} €</div>${variation(v(B.or))}</div>`);
-  if(B.argent&&taux) cases.push(`<div class="c"><div class="nom">Argent · le kilo</div><div class="val">${nombre(B.argent.prix/taux*ONCE_PAR_KG,0)} €</div>${variation(v(B.argent))}</div>`);
-  if(B.djt) cases.push(`<div class="c"><div class="nom">DJT · l'action</div><div class="val">${nombre(B.djt.prix,2)} $</div>${variation(v(B.djt))}</div>`);
-  cases.push(btc?`<div class="c"><div class="nom">Bitcoin · en direct</div><div class="val">${nombre(btc.eur,0)} €</div>${variation(btc.eur_24h_change)}</div>`:`<div class="c"><div class="nom">Bitcoin</div><div class="val">…</div></div>`);
+  if(B.or&&taux) cases.push(`<div class="cc"><div class="nom">Or · l'once</div><div class="val">${nombre(B.or.prix/taux,0)} €</div>${variation(v(B.or))}</div>`);
+  if(B.argent&&taux) cases.push(`<div class="cc"><div class="nom">Argent · le kilo</div><div class="val">${nombre(B.argent.prix/taux*ONCE_PAR_KG,0)} €</div>${variation(v(B.argent))}</div>`);
+  if(B.djt) cases.push(`<div class="cc"><div class="nom">DJT · l'action</div><div class="val">${nombre(B.djt.prix,2)} $</div>${variation(v(B.djt))}</div>`);
+  cases.push(btc?`<div class="cc"><div class="nom">Bitcoin · en direct</div><div class="val">${nombre(btc.eur,0)} €</div>${variation(btc.eur_24h_change)}</div>`:`<div class="cc"><div class="nom">Bitcoin</div><div class="val">…</div></div>`);
   boite.innerHTML=cases.join("");
   resumeActus();
 }
