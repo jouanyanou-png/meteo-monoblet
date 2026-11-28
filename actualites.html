@@ -25,12 +25,14 @@ h1{margin:0;font-size:26px}
 .onglets button{font:600 18px system-ui,sans-serif;padding:10px 20px;border-radius:12px;border:2px solid #d6cfc4;background:#fff;color:#1f2937;cursor:pointer}
 .onglets button:hover{border-color:#2563eb}
 .onglets button[aria-selected=true]{background:#1f2937;color:#fff;border-color:#1f2937}
+.menu-tb{display:flex;gap:6px;flex-wrap:wrap;padding:10px 0 12px;font:600 16px system-ui,sans-serif}
+.menu-tb a{color:#1f2937;text-decoration:none;padding:7px 14px;border-radius:10px;background:#fff;border:1px solid #e5e7eb}
+.menu-tb a:hover{border-color:#2563eb}.menu-tb a[aria-current=page]{background:#1f2937;color:#fff;border-color:#1f2937}
 </style>
-<link rel="stylesheet" href="menu.css">
 </head>
 <body>
 <div class="wrap">
-  <nav class="cote" aria-label="Pages"><div class="marque">Ma maison<small>mon tableau de bord</small></div><a href="/"><span class="ico">🏠</span>Tableau de bord</a><a href="/meteo"><span class="ico">☀️</span>Météo</a><a href="/actualites" aria-current="page"><span class="ico">📰</span>Actualités</a><a href="/investissements"><span class="ico">📈</span>Investissements</a><div class="rubrique">Bientôt</div><span class="item"><span class="ico">🎵</span>Musiques YouTube<em>bientôt</em></span><span class="item"><span class="ico">📂</span>Dossiers en attente<em>bientôt</em></span></nav>
+  <nav class="menu-tb" aria-label="Pages"><a href="/">🏠 Tableau de bord</a><a href="/meteo">☀️ Météo</a><a href="/actualites" aria-current="page">📰 Actualités</a><a href="/investissements">📈 Investissements</a></nav>
   <header class="haut">
     <h1>Actualités</h1>
     <span class="maj" id="maj"></span>

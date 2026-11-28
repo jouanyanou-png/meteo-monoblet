@@ -5,44 +5,25 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Mon tableau de bord</title>
 <style>
-:root{--fond:#f6f1ea;--carte:#fff;--encre:#1f2937;--doux:#4b5563;--pale:#6b7280;--trait:#e7e1d8;--bleu:#2563eb;--hausse:#047857;--baisse:#b91c1c;--vert:#1f2b25;--orange:#e08a4b}
+:root{--fond:#f6f1ea;--carte:#fff;--encre:#1f2937;--doux:#4b5563;--pale:#6b7280;--trait:#e7e1d8;--bleu:#2563eb;--hausse:#047857;--baisse:#b91c1c;--rose:#fbe9ee}
 *{box-sizing:border-box}
 body{margin:0;background:var(--fond);color:var(--encre);font:17px/1.45 system-ui,-apple-system,"Segoe UI",sans-serif}
-.page{display:grid;grid-template-columns:290px minmax(0,1fr) 340px;gap:22px;padding:26px 26px 50px;max-width:1500px}
-@media (max-width:1350px){.page{grid-template-columns:270px minmax(0,1fr)}.assistant{grid-column:1/-1}}
-@media (max-width:860px){.page{grid-template-columns:1fr;padding:6px 14px 40px}}
-.carte{background:var(--carte);border:1px solid var(--trait);border-radius:16px}
-.err{color:var(--baisse)}
-/* ---- colonne de gauche : bonjour + chiffres ---- */
-.surtitre{font-size:13px;letter-spacing:.16em;text-transform:uppercase;color:var(--pale)}
-h1{margin:4px 0 2px;font-size:32px}
-.date{color:var(--doux);font-size:17px;margin-bottom:18px}
-.point{background:#eef2ec;border:1px solid #d9e2d6;border-radius:16px;padding:16px 18px;margin-bottom:16px}
-.point h2{margin:0 0 8px;font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#3f5247}
-.point p{margin:0;white-space:pre-line;font-size:16px}
-.point a{display:inline-block;margin-top:10px;color:var(--encre);font-weight:600;text-decoration:none}
-.point a:hover{text-decoration:underline}
-.chiffres{padding:4px 0}
-.ch{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:12px 18px;border-top:1px solid var(--trait);text-decoration:none;color:inherit}
-.ch:first-child{border-top:0}
-a.ch:hover{background:#faf7f2}
-.ch .nom{font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--doux)}
-.ch .sous{font-size:14px;color:var(--pale)}
-.ch .val{font-size:22px;font-weight:700;white-space:nowrap}
-.h{color:var(--hausse);font-weight:700} .b{color:var(--baisse);font-weight:700}
-/* ---- colonne du milieu : les cartes « Ouvrir → » ---- */
-.milieu{display:flex;flex-direction:column;gap:16px;min-width:0}
-.bloc{padding:18px 20px}
-.entete{display:flex;align-items:center;gap:16px;text-decoration:none;color:inherit}
-.pastille{width:52px;height:52px;flex:none;border-radius:14px;background:#eef2ec;display:flex;align-items:center;justify-content:center;font-size:26px}
-.entete .t{flex:1;min-width:0}
-.entete b{display:block;font-size:19px}
-.entete small{display:block;color:var(--pale);font-size:15px}
-.entete .ouvrir{font-weight:600;white-space:nowrap}
-a.entete:hover .ouvrir,a.entete:focus-visible .ouvrir{text-decoration:underline}
-a.bloc{display:block;text-decoration:none;color:inherit}
-a.bloc:hover,a.bloc:focus-visible{border-color:#9fb3a6;outline:none}
-/* tableau Moyenne (look Meteociel, valeurs reprises de leur code) */
+.wrap{max-width:1180px;margin:0 auto;padding:0 20px 50px}
+/* menu commun à toutes les pages */
+.menu-tb{display:flex;gap:6px;flex-wrap:wrap;padding:12px 0;font:600 16px system-ui,sans-serif}
+.menu-tb a{color:#1f2937;text-decoration:none;padding:8px 14px;border-radius:10px;background:#fff;border:1px solid #e5e7eb}
+.menu-tb a:hover{border-color:#2563eb}
+.menu-tb a[aria-current=page]{background:#1f2937;color:#fff;border-color:#1f2937}
+header.bonjour{margin:8px 0 18px}
+h1{margin:0;font-size:30px}
+.date{color:var(--doux);font-size:18px}
+.grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(460px,1fr));gap:18px}
+.tuile{background:var(--carte);border-radius:18px;box-shadow:0 1px 3px #0001;padding:18px 20px;color:inherit;text-decoration:none;display:block;border:2px solid transparent;transition:border-color .15s}
+a.tuile:hover,a.tuile:focus-visible{border-color:var(--bleu);outline:none}
+.tuile h2{margin:0 0 12px;font-size:21px;display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.tuile h2 small{font-size:14px;font-weight:400;color:var(--pale)}
+.ouvrir{font-size:15px;color:var(--bleu);font-weight:600;margin-top:12px}
+/* Look Meteociel (valeurs reprises de leur code) */
 table.mc{border-collapse:collapse;font-family:Verdana,Arial,Helvetica,sans-serif;font-size:12px;color:#000066;margin:0 auto;background:#fff}
 .mc td{border:1px solid #a0a0b0;padding:2px;white-space:nowrap}
 .mc tr.tete td{background:#aaaaff;text-align:center;font-weight:normal}
@@ -51,149 +32,155 @@ table.mc{border-collapse:collapse;font-family:Verdana,Arial,Helvetica,sans-serif
 .mc td.jour{text-align:center;vertical-align:middle}
 .mc td.c{text-align:center}
 .mc td.ico{text-align:center;padding:0 2px}
-.moy{max-height:430px;overflow:auto;border-radius:8px;border:1px solid #d7dbe6;margin-top:14px}
+.mc td.ico svg,.mc td.dir svg{display:block;margin:auto}
+/* météo : le tableau Moyenne dans la case */
+.moy{max-height:440px;overflow:auto;border-radius:8px;border:1px solid #d7dbe6}
 .moy thead{position:sticky;top:0;z-index:1}
 .moy table.mc{width:100%}
 .moy .mc td{padding:2px 3px;height:22px}
 .moy .mc td.ico svg{width:30px;height:21px;display:block;margin:auto}
 .moy .mc td.dir svg{width:16px;height:16px;display:block;margin:auto}
 .legende{font-size:13px;color:var(--pale);margin-top:8px}
+/* météo */
+.jours{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.jour{background:#eef6ff;border-radius:12px;padding:10px 6px;text-align:center}
+.jour b{display:block;font-size:16px}
+.jour svg{width:54px;height:44px;display:block;margin:4px auto}
+.jour .tmp{font-size:18px;font-weight:700}
+.jour .tmp .min{color:#2563eb} .jour .tmp .max{color:#c2410c}
+.jour .pl{font-size:14px;color:var(--doux);min-height:20px}
+.jour .ciel{font-size:13px;color:var(--pale)}
+.maintenant{display:flex;align-items:center;gap:12px;margin-bottom:12px;font-size:18px}
+.maintenant svg{width:46px;height:38px}
+.maintenant .gros{font-size:30px;font-weight:700}
+/* investissements */
+.tuile.invest{background:var(--rose)}
+.cours{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cc{background:#fff;border-radius:12px;padding:10px 12px}
+.cc .nom{font-size:14px;color:var(--pale)}
+.cc .val{font-size:22px;font-weight:700;letter-spacing:-.3px}
+.cc .var{font-size:14px;font-weight:700}
+.h{color:var(--hausse)} .b{color:var(--baisse)}
 /* actualités */
-.actus3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:14px}
+.tuile.large{grid-column:1/-1}
+.actus3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
 .actu{display:flex;flex-direction:column;background:#f8f5f0;border-radius:12px;overflow:hidden;text-decoration:none;color:inherit;border:2px solid transparent}
 .actu:hover,.actu:focus-visible{border-color:var(--bleu);outline:none}
 .actu .photo{aspect-ratio:16/9;background:#e2e8f0 center/cover no-repeat}
-.actu .t{font-size:15px;font-weight:600;line-height:1.3;padding:8px 10px 2px}
-.actu .s{font-size:13px;color:var(--pale);padding:0 10px 10px}
-@media (max-width:1100px){.actus3{grid-template-columns:1fr}}
-.bientot{border-style:dashed;background:transparent}
-.bientot .pastille{background:#f1ebe2}
-.bientot .ouvrir{color:var(--pale);font-weight:400}
-/* ---- colonne de droite : l'assistant ---- */
-.assistant{display:flex;flex-direction:column;height:calc(100vh - 52px);min-height:520px;position:sticky;top:26px;overflow:hidden}
-@media (max-width:1350px){.assistant{position:static;height:560px}}
-.assistant header{display:flex;gap:12px;align-items:center;padding:14px 16px;border-bottom:1px solid var(--trait)}
-.assistant header .pastille{width:40px;height:40px;font-size:20px;border-radius:10px}
-.assistant header b{display:block}
-.assistant header small{color:var(--pale);font-size:14px}
-#fil{flex:1;overflow:auto;padding:14px;display:flex;flex-direction:column;gap:10px}
-.bulle{max-width:92%;padding:10px 14px;border-radius:14px;white-space:pre-line;font-size:16px}
-.bulle.lui{background:#eef2ec;align-self:flex-start;border-bottom-left-radius:4px}
-.bulle.moi{background:var(--vert);color:#fff;align-self:flex-end;border-bottom-right-radius:4px}
-#idees{display:flex;flex-wrap:wrap;gap:6px;padding:10px 14px;border-top:1px solid var(--trait)}
-#idees button{border:1px solid #cfd8d2;background:#fff;border-radius:16px;padding:6px 12px;font:15px system-ui,sans-serif;cursor:pointer;color:var(--encre)}
-#idees button:hover{border-color:var(--vert)}
-#question{display:flex;gap:8px;padding:12px;border-top:1px solid var(--trait)}
-#question input{flex:1;min-width:0;font:17px system-ui,sans-serif;padding:10px 12px;border:2px solid #cfd8d2;border-radius:10px}
-#question input:focus{outline:none;border-color:var(--vert)}
-#question button{font:600 17px system-ui,sans-serif;background:var(--vert);color:#fff;border:0;border-radius:10px;padding:0 16px;cursor:pointer}
+.actu .t{font-size:16px;font-weight:600;line-height:1.3;padding:8px 12px 2px}
+.actu .s{font-size:13px;color:var(--pale);padding:0 12px 10px}
+@media (max-width:820px){.actus3{grid-template-columns:1fr}}
+/* bientôt */
+.bientot{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:18px;margin-top:18px}
+.bientot .tuile{background:transparent;border:2px dashed #cfc6b8;box-shadow:none;color:var(--doux)}
+.bientot h2{font-size:18px;margin-bottom:4px}
+.bientot p{margin:0;font-size:15px}
+.err{color:var(--baisse)}
+@media (max-width:560px){.grille{grid-template-columns:1fr}.jours{grid-template-columns:repeat(2,1fr)}}
 </style>
-<link rel="stylesheet" href="menu.css">
 </head>
 <body>
-<nav class="cote" aria-label="Pages"><div class="marque">Ma maison<small>mon tableau de bord</small></div><a href="/" aria-current="page"><span class="ico">🏠</span>Tableau de bord</a><a href="/meteo"><span class="ico">☀️</span>Météo</a><a href="/actualites"><span class="ico">📰</span>Actualités</a><a href="/investissements"><span class="ico">📈</span>Investissements</a><div class="rubrique">Bientôt</div><span class="item"><span class="ico">🎵</span>Musiques YouTube<em>bientôt</em></span><span class="item"><span class="ico">📂</span>Dossiers en attente<em>bientôt</em></span></nav>
-
-<main class="page">
-  <!-- gauche : bonjour + le point du jour + les chiffres -->
-  <section>
-    <div class="surtitre">Ma maison</div>
-    <h1 id="salut">Bonjour.</h1>
+<div class="wrap">
+  <nav class="menu-tb" aria-label="Pages"><a href="/" aria-current="page">🏠 Tableau de bord</a><a href="/meteo">☀️ Météo</a><a href="/actualites">📰 Actualités</a><a href="/investissements">📈 Investissements</a></nav>
+  <header class="bonjour">
+    <h1>Bonjour !</h1>
     <div class="date" id="date"></div>
-    <div class="point">
-      <h2>Le point du jour</h2>
-      <p id="point">Chargement…</p>
-      <a href="/meteo">Voir les 4 météos →</a>
-    </div>
-    <div class="carte chiffres" id="chiffres"><div class="ch"><span class="sous">Chargement…</span></div></div>
-  </section>
+  </header>
 
-  <!-- milieu : les cartes -->
-  <section class="milieu">
-    <div class="carte bloc">
-      <a class="entete" href="/meteo"><span class="pastille">☀️</span><span class="t"><b>Météo à Monoblet</b><small id="meteoMaj">Moyenne des 4 sites</small></span><span class="ouvrir">Ouvrir →</span></a>
+  <div class="grille">
+    <a class="tuile" href="/meteo" id="tMeteo">
+      <h2>Météo à Monoblet <small id="meteoMaj"></small></h2>
       <div id="meteo"><p>Chargement…</p></div>
+      <div class="ouvrir">Voir le détail des 4 météos →</div>
+    </a>
+    <div class="tuile invest">
+      <h2>Mes investissements <small id="bourseMaj"></small></h2>
+      <a href="/investissements" style="color:inherit;text-decoration:none"><div class="cours" id="cours"><p>Chargement…</p></div></a>
+      <a class="ouvrir" href="/investissements" style="display:block;text-decoration:none">Voir les graphiques et toutes les cryptos →</a>
     </div>
-    <div class="carte bloc">
-      <a class="entete" href="/actualites"><span class="pastille">📰</span><span class="t"><b>Actualités Media Trump</b><small id="actusMaj">Les 3 dernières</small></span><span class="ouvrir">Ouvrir →</span></a>
+    <div class="tuile large">
+      <h2>Actualités Media Trump <small id="actusMaj"></small></h2>
       <div class="actus3" id="actus"><p>Chargement…</p></div>
+      <a class="ouvrir" href="/actualites" style="display:block;text-decoration:none">Voir toutes les actualités →</a>
     </div>
-    <a class="carte bloc" href="/investissements"><span class="entete"><span class="pastille">📈</span><span class="t"><b>Mes investissements</b><small>Or, argent, DJT et cryptos : graphiques jusqu'à 5 ans</small></span><span class="ouvrir">Ouvrir →</span></span></a>
-    <div class="carte bloc bientot"><span class="entete"><span class="pastille">🎵</span><span class="t"><b>Mes musiques YouTube</b><small>Chorale, guitare, musique, et un dossier par chanteur</small></span><span class="ouvrir">Bientôt</span></span></div>
-    <div class="carte bloc bientot"><span class="entete"><span class="pastille">📂</span><span class="t"><b>Mes dossiers en attente</b><small>Mes recherches en cours (sécateur électrique…)</small></span><span class="ouvrir">Bientôt</span></span></div>
-  </section>
+  </div>
 
-  <!-- droite : l'assistant -->
-  <aside class="carte assistant" aria-label="Poser une question">
-    <header><span class="pastille">💬</span><span><b>Mon assistant</b><small>Il lit la météo, les cours et les actualités</small></span></header>
-    <div id="fil" aria-live="polite"><div class="bulle lui">Bonjour ! Pose-moi une question : le linge, la pluie, le jardin, l'or, les nouvelles…</div></div>
-    <div id="idees">
-      <button type="button">Je peux étendre le linge demain ?</button>
-      <button type="button">Il va pleuvoir ce week-end ?</button>
-      <button type="button">Où en est l'or ?</button>
-      <button type="button">Les dernières nouvelles ?</button>
-    </div>
-    <form id="question"><input id="texte" maxlength="400" autocomplete="off" placeholder="Écris ta question ici…" aria-label="Ta question"><button>Envoyer</button></form>
-  </aside>
-</main>
+  <div class="bientot">
+    <div class="tuile"><h2>🎵 Mes musiques YouTube</h2><p>Bientôt : chorale, guitare, musique, et un dossier par chanteur.</p></div>
+    <div class="tuile"><h2>📂 Mes dossiers en attente</h2><p>Bientôt : mes recherches en cours (sécateur électrique, modèles trouvés…).</p></div>
+  </div>
+</div>
 
 <script src="donnees.js"></script>
 <script src="bourse.js"></script>
 <script src="meteo-outils.js"></script>
-<script src="assistant.js"></script>
 <script>
 const echap=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 const heureCourte=iso=>new Date(iso).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"}).replace(":","h");
 const dateLongue=new Date().toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long",year:"numeric"});
 document.getElementById("date").textContent=dateLongue[0].toUpperCase()+dateLongue.slice(1);
-const hh=new Date().getHours();
-document.getElementById("salut").textContent=hh>=18||hh<5?"Bonsoir.":"Bonjour.";
 
-// ---------- Météo : le point du jour + le tableau Moyenne des 4 météos ----------
-let ici=null;
+// ---------- Météo : résumé des 4 prochains jours, même moyenne que la page Météo ----------
 function resumeMeteo(){
   const D=window.DONNEES, boite=document.getElementById("meteo");
-  const L=D?moyenneLignes(D):[];
-  if(!L.length){ boite.innerHTML='<p class="err">La météo n\'est pas encore là.</p>'; document.getElementById("point").textContent="La météo n'est pas encore là."; return; }
-  document.getElementById("meteoMaj").textContent="Moyenne des 4 sites · lue à "+heureCourte(D.maj);
+  if(!D){ boite.innerHTML='<p class="err">La météo n\'est pas encore là.</p>'; return; }
+  const L=moyenneLignes(D);
+  if(!L.length){ boite.innerHTML='<p class="err">La météo n\'est pas encore là.</p>'; return; }
+  document.getElementById("meteoMaj").textContent="lu à "+heureCourte(D.maj);
+  // la ligne la plus proche de maintenant
   const now=Date.now();
-  ici=L.reduce((a,b)=>Math.abs(new Date(b.t)-now)<Math.abs(new Date(a.t)-now)?b:a);
-  // le point du jour : la réponse de l'assistant pour aujourd'hui (ou ce soir) et demain
-  let p1=""; try{ p1=Assistant.repondre(hh>=19?"quel temps ce soir":"quel temps aujourd'hui"); }catch(e){}
-  let p2=""; try{ p2=Assistant.repondre("quel temps demain"); }catch(e){}
-  document.getElementById("point").textContent=[p1,p2].filter(x=>x&&!/^Les prévisions ne vont/.test(x)).join("\n")||"Pas de prévisions pour le moment.";
-  const Lt=L.filter(l=>new Date(l.t)>=now-3*36e5);
-  boite.innerHTML=`${DEFS_ICONES}<div class="moy">${tableMoyenne(Lt,4)}</div>
-    <div class="legende">Meteociel, Météo-France, Météo Agricole et Météo Languedoc · fais défiler pour les jours suivants</div>`;
-  chiffres();
+  const ici=L.reduce((a,b)=>Math.abs(new Date(b.t)-now)<Math.abs(new Date(a.t)-now)?b:a);
+  // regroupement par jour
+  const jours={};
+  L.forEach(l=>{(jours[l.t.slice(0,10)]=jours[l.t.slice(0,10)]||[]).push(l);});
+  const aujourdhui=new Date(); aujourdhui.setHours(0,0,0,0);
+  const cles=Object.keys(jours).filter(j=>new Date(j+"T12:00")>=aujourdhui).slice(0,4);
+  const cartes=cles.map((j,i)=>{
+    const X=jours[j], temps=X.map(x=>x.temp);
+    const pluie=X.reduce((s,x)=>s+(x.pluie||0),0);
+    // ciel de la journée (7h-19h) : le plus fréquent, à égalité le plus fort
+    const jourL=X.filter(x=>{const h=new Date(x.t).getHours(); return h>=7&&h<=19;}); const base=jourL.length?jourL:X;
+    const votes={}; base.forEach(x=>{const f=familleCiel(x.code); votes[f]=(votes[f]||0)+1;});
+    const fam=Object.keys(votes).map(Number).sort((a,b)=>votes[b]-votes[a]||b-a)[0], code=CODE_FAMILLE[fam];
+    const d=new Date(j+"T12:00");
+    const k=Math.floor((d-aujourdhui)/864e5);
+    const nom=k===0?"Aujourd'hui":k===1?"Demain":d.toLocaleDateString("fr-FR",{weekday:"long"});
+    return `<div class="jour"><b style="text-transform:capitalize">${nom}</b>${icone(code,13)}
+      <div class="tmp"><span class="min">${Math.round(Math.min(...temps))}°</span> / <span class="max">${Math.round(Math.max(...temps))}°</span></div>
+      <div class="ciel">${meteo(code)[1]}</div>
+      <div class="pl">${pluie>=0.5?"💧 "+pluie.toFixed(pluie<10?1:0).replace(".",",")+" mm":"sec"}</div></div>`;
+  }).join("");
+  // le tableau « Moyenne des 4 météos », à partir de maintenant
+  const debut=Date.now()-3*36e5, Lt=L.filter(l=>new Date(l.t)>=debut);
+  boite.innerHTML=`${DEFS_ICONES}<div class="maintenant">${icone(ici.code,new Date(ici.t).getHours())}<span class="gros">${Math.round(ici.temp)} °C</span><span>${meteo(ici.code)[1]} · vent ${Math.round(ici.moy??0)} km/h</span></div>
+    <div class="moy">${tableMoyenne(Lt,4)}</div>
+    <div class="legende">Moyenne de Meteociel, Météo-France, Météo Agricole et Météo Languedoc · fais défiler pour les jours suivants</div>`;
 }
 
-// ---------- Les chiffres : température, or, argent, DJT, Bitcoin (affichage des cours seulement) ----------
+// ---------- Investissements : or, argent, DJT (robot) + Bitcoin (en direct) ----------
 const ONCE_PAR_KG=32.1507;
 const nombre=(x,dec)=>x.toLocaleString("fr-FR",{minimumFractionDigits:dec,maximumFractionDigits:dec});
-const variation=v=>v==null||!isFinite(v)?"":`<span class="${v>0?"h":v<0?"b":""}">${v>0?"▲ +":v<0?"▼ −":""}${nombre(Math.abs(v),2)} %</span>`;
+const variation=v=>v==null||!isFinite(v)?"":`<div class="var ${v>0?"h":v<0?"b":""}">${v>0?"▲ +":v<0?"▼ −":""}${nombre(Math.abs(v),2)} %</div>`;
 let btc=null;
-function cours(){
-  const B=window.BOURSE, R=[]; if(!B) return R;
+function resumeBourse(){
+  const B=window.BOURSE, boite=document.getElementById("cours");
+  if(!B){ boite.innerHTML='<p class="err">Les cours ne sont pas encore là.</p>'; return; }
+  document.getElementById("bourseMaj").textContent="lu à "+heureCourte(B.maj);
   const taux=B.eurusd&&B.eurusd.prix, v=S=>S&&S.veille?(S.prix/S.veille-1)*100:null;
-  if(B.or&&taux) R.push({nom:"Or",sous:"l'once",val:nombre(B.or.prix/taux,0)+" €",v:v(B.or)});
-  if(B.argent&&taux) R.push({nom:"Argent",sous:"le kilo",val:nombre(B.argent.prix/taux*ONCE_PAR_KG,0)+" €",v:v(B.argent)});
-  if(B.djt) R.push({nom:"DJT",sous:"l'action",val:nombre(B.djt.prix,2)+" $",v:v(B.djt)});
-  if(btc) R.push({nom:"Bitcoin",sous:"en direct",val:nombre(btc.eur,0)+" €",v:btc.eur_24h_change});
-  return R;
-}
-function chiffres(){
-  const lignes=[];
-  if(ici) lignes.push(`<a class="ch" href="/meteo"><span><span class="nom">Dehors</span><br><span class="sous">${meteo(ici.code)[1]} · vent ${Math.round(ici.moy??0)} km/h</span></span><span class="val">${Math.round(ici.temp)} °C</span></a>`);
-  cours().forEach(c=>lignes.push(`<a class="ch" href="/investissements"><span><span class="nom">${c.nom}</span><br><span class="sous">${c.sous} ${variation(c.v)}</span></span><span class="val">${c.val}</span></a>`));
-  if(window.BOURSE) lignes.push(`<div class="ch"><span class="sous">Cours lus à ${heureCourte(BOURSE.maj)}</span></div>`);
-  document.getElementById("chiffres").innerHTML=lignes.join("")||'<div class="ch"><span class="err">Pas encore de chiffres.</span></div>';
+  const cases=[];
+  if(B.or&&taux) cases.push(`<div class="cc"><div class="nom">Or · l'once</div><div class="val">${nombre(B.or.prix/taux,0)} €</div>${variation(v(B.or))}</div>`);
+  if(B.argent&&taux) cases.push(`<div class="cc"><div class="nom">Argent · le kilo</div><div class="val">${nombre(B.argent.prix/taux*ONCE_PAR_KG,0)} €</div>${variation(v(B.argent))}</div>`);
+  if(B.djt) cases.push(`<div class="cc"><div class="nom">DJT · l'action</div><div class="val">${nombre(B.djt.prix,2)} $</div>${variation(v(B.djt))}</div>`);
+  cases.push(btc?`<div class="cc"><div class="nom">Bitcoin · en direct</div><div class="val">${nombre(btc.eur,0)} €</div>${variation(btc.eur_24h_change)}</div>`:`<div class="cc"><div class="nom">Bitcoin</div><div class="val">…</div></div>`);
+  boite.innerHTML=cases.join("");
+  resumeActus();
 }
 function resumeActus(){
   const tous=((window.BOURSE&&BOURSE.actus)||[]).filter(a=>/^https:\/\//.test(a.lien)), boite=document.getElementById("actus");
-  const avecPhoto=tous.filter(a=>/^https:\/\//.test(a.image));
+  const avecPhoto=tous.filter(a=>/^https:\/\//.test(a.image));            // de préférence celles qui ont une photo
   const A=(avecPhoto.length>=3?avecPhoto:tous).slice(0,3);
   if(!A.length){ boite.innerHTML='<p class="err">Les actualités n\'ont pas pu être lues.</p>'; return; }
-  document.getElementById("actusMaj").textContent="Les 3 dernières · veille de "+heureCourte(BOURSE.actus_maj||BOURSE.maj);
+  document.getElementById("actusMaj").textContent="lues à "+heureCourte(BOURSE.maj);
   boite.innerHTML=A.map(a=>{
     const photo=/^https:\/\//.test(a.image)?`style="background-image:url('${echap(a.image)}')"`:"";
     return `<a class="actu" href="${echap(a.lien)}" target="_blank" rel="noopener"><div class="photo" ${photo}></div><div class="t">${echap(a.titre)}</div><div class="s">${echap(a.source)}</div></a>`;
@@ -202,37 +189,9 @@ function resumeActus(){
 async function bitcoin(){
   try{
     const r=await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=eur&include_24hr_change=true");
-    if(r.ok){ btc=(await r.json()).bitcoin; chiffres(); }
+    if(r.ok){ btc=(await r.json()).bitcoin; resumeBourse(); }
   }catch(e){}
 }
-
-// ---------- L'assistant : météo (règles de la page Météo) + cours + actualités. Gratuit, sans IA. ----------
-function repondreTout(question){
-  const q=question.toLowerCase().normalize("NFD").replace(/[̀-ͯ]/g,"").replace(/['’]/g," ");
-  if(/\bor\b|argent|bitcoin|crypto|djt|bourse|cours|investiss|action/.test(q)){
-    const C=cours(); if(!C.length) return "Les cours ne sont pas encore chargés, réessaie dans un instant.";
-    const voulu=C.filter(c=>new RegExp("\\b"+c.nom.toLowerCase()+"\\b").test(q)), liste=voulu.length?voulu:C;
-    const txt=v=>v==null||!isFinite(v)?"":` (${v>=0?"+":"−"}${nombre(Math.abs(v),2)} % depuis hier)`;
-    return liste.map(c=>`${c.nom}, ${c.sous} : ${c.val}${txt(c.v)}.`).join("\n")+"\nC'est seulement le cours, pas un conseil. Les graphiques sont dans « Investissements ».";
-  }
-  if(/actu|nouvelle|info|journal|trump|news/.test(q)){
-    const A=((window.BOURSE&&(/france|monde|general/.test(q)?BOURSE.actus_fr:BOURSE.actus))||[]).slice(0,3);
-    if(!A.length) return "Les actualités ne sont pas encore chargées.";
-    return "Les 3 dernières :\n"+A.map(a=>"• "+a.titre+" ("+a.source+")").join("\n")+"\nTout est dans « Actualités ».";
-  }
-  return Assistant.repondre(question);
-}
-(function(){
-  const fil=document.getElementById("fil"), champ=document.getElementById("texte");
-  function bulle(texte,qui){ const d=document.createElement("div"); d.className="bulle "+qui; d.textContent=texte; fil.appendChild(d); fil.scrollTop=fil.scrollHeight; return d; }
-  function demander(q){
-    q=q.trim(); if(!q) return;
-    bulle(q,"moi"); champ.value="";
-    try{ bulle(repondreTout(q),"lui"); }catch(e){ console.error(e); bulle("Oups, je n'ai pas réussi. Essaie une autre question.","lui"); }
-  }
-  document.getElementById("question").onsubmit=e=>{e.preventDefault(); demander(champ.value);};
-  document.querySelectorAll("#idees button").forEach(b=>b.onclick=()=>demander(b.textContent));
-})();
 
 // ---------- Chiffres les plus récents (actualisés toutes les heures par le robot) ----------
 async function frais(fichier,nom){
@@ -246,10 +205,10 @@ async function frais(fichier,nom){
 }
 async function actualiser(){
   if(await frais("donnees.js","DONNEES")) resumeMeteo();
-  if(await frais("bourse.js","BOURSE")){ chiffres(); resumeActus(); }
+  if(await frais("bourse.js","BOURSE")) resumeBourse();
   bitcoin();
 }
-resumeMeteo(); chiffres(); resumeActus(); actualiser();
+resumeMeteo(); resumeBourse(); actualiser();
 setInterval(actualiser,10*60*1000);
 </script>
 </body>
