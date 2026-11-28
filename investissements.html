@@ -56,6 +56,12 @@ table.crypto{width:100%;border-collapse:collapse;font-size:17px}
 .crypto img{width:24px;height:24px;vertical-align:middle;margin-right:8px}
 .crypto svg{width:130px;height:34px;display:block;margin-left:auto}
 .err{color:var(--baisse)}
+.crypto tr.ligne{cursor:pointer}
+.crypto tr.ligne:hover td,.crypto tr.ligne:focus-visible td{background:#f8fafc}
+.crypto tr.ligne:focus-visible{outline:2px solid var(--ligne)}
+.crypto .voir{font-size:13px;color:var(--ligne);margin-left:8px;white-space:nowrap}
+.crypto tr.histo td{background:#f8fafc;padding:10px 18px 16px}
+.crypto tr.histo .graph svg{width:100%;height:190px;margin:0}
 </style>
 </head>
 <body>
@@ -73,6 +79,7 @@ table.crypto{width:100%;border-collapse:collapse;font-size:17px}
   <div class="cours" id="cours"></div>
 
   <h2>Cryptomonnaies <small id="cryptoInfo">mis à jour toutes les minutes</small></h2>
+  <p class="note" style="margin:-4px 0 8px;font-size:14px">Clique sur une monnaie pour voir son historique (jusqu'à 5 ans).</p>
   <div class="carte"><table class="crypto"><thead><tr><th>Monnaie</th><th class="n">Prix</th><th class="n">24 h</th><th class="n">7 jours</th><th class="n">Courbe 7 jours</th></tr></thead><tbody id="cryptos"><tr><td colspan="5">Chargement…</td></tr></tbody></table></div>
 </div>
 
@@ -151,18 +158,19 @@ function carteCours(A){
 // courbe simple, un seul trait, avec curseur et bulle au survol
 function dessinerCourbe(A){
   const boite=document.getElementById("g-"+A.id); if(!boite) return;
-  const pts=serie(A.id,plageChoisie[A.id]).map(p=>[p[0],valeur(A,p)]).filter(p=>isFinite(p[1]));
+  const pts=(A.points?A.points(plageChoisie[A.id]):serie(A.id,plageChoisie[A.id]).map(p=>[p[0],valeur(A,p)])).filter(p=>p&&isFinite(p[1]));
   if(pts.length<2){ boite.innerHTML='<p class="note">Pas assez de points.</p>'; return; }
   const W=boite.clientWidth||500,H=190,g=46,d=8,h=10,b=24;
   const xs=pts.map(p=>p[0]),ys=pts.map(p=>p[1]);
   const x0=Math.min(...xs),x1=Math.max(...xs); let y0=Math.min(...ys),y1=Math.max(...ys); const m=(y1-y0)*0.08||1; y0-=m; y1+=m;
   const X=t=>g+(t-x0)/(x1-x0)*(W-g-d), Y=v=>h+(1-(v-y0)/(y1-y0))*(H-h-b);
-  const fmt=v=>A.enEuro?euro(v,0):dollar(v);
+  const fmt=A.fmt||(v=>A.enEuro?euro(v,0):dollar(v));
   const ticks=[y0+m,(y0+y1)/2,y1-m];
   const chemin=pts.map((p,i)=>(i?"L":"M")+X(p[0]).toFixed(1)+","+Y(p[1]).toFixed(1)).join("");
-  const dateC=t=>new Date(t*1000).toLocaleDateString("fr-FR",{day:"numeric",month:"short"});
+  const longue=(x1-x0)>200*86400;
+  const dateC=t=>new Date(t*1000).toLocaleDateString("fr-FR",longue?{month:"short",year:"numeric"}:{day:"numeric",month:"short"});
   boite.innerHTML=`<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Courbe ${A.nom}">
-    ${ticks.map(v=>`<line x1="${g}" x2="${W-d}" y1="${Y(v)}" y2="${Y(v)}" stroke="#eef0f3"/><text x="${g-6}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="#6b7280">${A.enEuro?Math.round(v).toLocaleString("fr-FR"):v.toFixed(2)}</text>`).join("")}
+    ${ticks.map(v=>`<line x1="${g}" x2="${W-d}" y1="${Y(v)}" y2="${Y(v)}" stroke="#eef0f3"/><text x="${g-6}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="#6b7280">${A.axe?A.axe(v):A.enEuro?Math.round(v).toLocaleString("fr-FR"):v.toFixed(2)}</text>`).join("")}
     <text x="${g}" y="${H-6}" font-size="11" fill="#6b7280">${dateC(x0)}</text>
     <text x="${W-d}" y="${H-6}" font-size="11" fill="#6b7280" text-anchor="end">${dateC(x1)}</text>
     <path d="${chemin}" fill="none" stroke="${A.couleur}" stroke-width="2" stroke-linejoin="round"/>
@@ -176,7 +184,7 @@ function dessinerCourbe(A){
     let best=pts[0]; for(const p of pts) if(Math.abs(X(p[0])-xv)<Math.abs(X(best[0])-xv)) best=p;
     const px=X(best[0]),py=Y(best[1]);
     cx.setAttribute("x1",px); cx.setAttribute("x2",px); cx.style.display=""; pt.setAttribute("cx",px); pt.setAttribute("cy",py); pt.style.display="";
-    const quand=plageChoisie[A.id]==="semaine"?new Date(best[0]*1000).toLocaleString("fr-FR",{weekday:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}):new Date(best[0]*1000).toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short",year:"numeric"});
+    const quand=["semaine","7j"].includes(plageChoisie[A.id])?new Date(best[0]*1000).toLocaleString("fr-FR",{weekday:"short",day:"numeric",hour:"2-digit",minute:"2-digit"}):new Date(best[0]*1000).toLocaleDateString("fr-FR",{weekday:"short",day:"numeric",month:"short",year:"numeric"});
     bulle.textContent=quand+" : "+fmt(best[1]); bulle.style.display="block"; bulle.style.left=(px*r.width/W)+"px"; bulle.style.top=(py*r.height/H)+"px";
   };
   svg.addEventListener("pointermove",montrer);
@@ -191,10 +199,49 @@ function afficherCours(){
     dessinerCourbe(ACTIFS.find(a=>a.id===bt.dataset.id));
   });
 }
-window.addEventListener("resize",()=>ACTIFS.forEach(dessinerCourbe));
+window.addEventListener("resize",()=>{ACTIFS.forEach(dessinerCourbe); if(cryptoOuverte) afficherCryptos();});
 
 // ---------- Cryptos (en direct, CoinGecko) ----------
 const CRYPTOS=["bitcoin","ripple","solana","dogecoin","ethereum","usd-coin"];
+const PLAGES_C=[["7j","7 jours"],["1m","1 mois"],["6m","6 mois"],["an","1 an"],["cinq","5 ans"]];
+let cryptoOuverte=null, derniereListe=[];
+const decimales=v=>v<0.1?4:v<1?3:2;
+// points d'une crypto pour une plage : 7 jours = courbe CoinGecko (1 point par heure), le reste = historique lu par le robot
+function pointsCrypto(c,plage){
+  if(plage==="7j"){
+    const P=(c.sparkline_in_7d||{}).price||[], fin=Date.now()/1000;
+    return P.map((v,i)=>[fin-(P.length-1-i)*3600,v]);
+  }
+  const H=window.BOURSE&&BOURSE.cryptos&&BOURSE.cryptos[c.id]; if(!H) return [];
+  let pts=plage==="cinq"?H.cinq:H.an;
+  if(plage==="1m") pts=pts.filter(p=>p[0]>=Date.now()/1000-31*86400);
+  if(plage==="6m") pts=pts.filter(p=>p[0]>=Date.now()/1000-183*86400);
+  return pts.concat([[Date.now()/1000,c.current_price]]); // la courbe finit sur le prix du moment
+}
+function actifCrypto(c){
+  const dec=decimales(c.current_price);
+  return {id:"c-"+c.id,nom:c.name,couleur:"var(--ligne)",points:p=>pointsCrypto(c,p),
+    fmt:v=>euro(v,decimales(v)),axe:v=>v>=100?Math.round(v).toLocaleString("fr-FR"):v.toLocaleString("fr-FR",{maximumFractionDigits:dec+1})};
+}
+function ouvrirHisto(){
+  const c=derniereListe.find(x=>x.id===cryptoOuverte); if(!c) return;
+  const tr=document.querySelector(`#cryptos tr.ligne[data-id="${c.id}"]`); if(!tr) return;
+  const A=actifCrypto(c); plageChoisie[A.id]=plageChoisie[A.id]||"an";
+  const attente=window.BOURSE&&BOURSE.cryptos?"":'<p class="note">L\'historique long arrive avec la prochaine mise à jour (dans l\'heure).</p>';
+  const h=document.createElement("tr"); h.className="histo";
+  h.innerHTML=`<td colspan="5"><div class="plages">${PLAGES_C.map(([k,l])=>`<button type="button" data-p="${k}" aria-pressed="${plageChoisie[A.id]===k}">${l}</button>`).join("")}</div>
+    <div class="graph" id="g-${A.id}"></div>${attente}</td>`;
+  tr.after(h);
+  h.querySelectorAll("button").forEach(bt=>bt.onclick=e=>{e.stopPropagation();
+    plageChoisie[A.id]=bt.dataset.p; h.querySelectorAll("button").forEach(x=>x.setAttribute("aria-pressed",x===bt)); dessinerCourbe(A);});
+  dessinerCourbe(A);
+}
+function brancherCryptos(){
+  document.querySelectorAll("#cryptos tr.ligne").forEach(tr=>{
+    const basculer=()=>{cryptoOuverte=cryptoOuverte===tr.dataset.id?null:tr.dataset.id; afficherCryptos();};
+    tr.onclick=basculer; tr.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault(); basculer();}};
+  });
+}
 function mini(prix,hausse){
   if(!prix||prix.length<2) return "";
   const W=130,H=34,lo=Math.min(...prix),hi=Math.max(...prix)||1;
@@ -206,19 +253,26 @@ async function cryptos(){
     const r=await fetch("https://api.coingecko.com/api/v3/coins/markets?vs_currency=eur&ids="+CRYPTOS.join(",")+"&sparkline=true&price_change_percentage=24h,7d");
     if(!r.ok) throw new Error(r.status);
     const L=await r.json(); L.sort((a,b)=>CRYPTOS.indexOf(a.id)-CRYPTOS.indexOf(b.id));
+    derniereListe=L; afficherCryptos();
+    document.getElementById("cryptoInfo").textContent="mis à jour à "+new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+" · toutes les minutes";
+  }catch(e){
+    console.error(e);
+    if(!document.querySelector("#cryptos b")) document.getElementById("cryptos").innerHTML='<tr><td colspan="5" class="err">Les cryptos n\'ont pas pu être lues, nouvel essai dans une minute.</td></tr>';
+  }
+}
+function afficherCryptos(){
+    const L=derniereListe;
     document.getElementById("cryptos").innerHTML=L.map(c=>{
       const v24=c.price_change_percentage_24h_in_currency??c.price_change_percentage_24h??0, v7=c.price_change_percentage_7d_in_currency??0;
       const dec=c.current_price<1?4:2;
       const img=/^https:\/\//.test(c.image)?`<img src="${echap(c.image)}" alt="">`:"";
-      return `<tr><td>${img}<b>${echap(c.name)}</b><span class="sym">${echap(String(c.symbol).toUpperCase())}</span></td>
+      const ouverte=cryptoOuverte===c.id;
+      return `<tr class="ligne" tabindex="0" role="button" aria-expanded="${ouverte}" data-id="${echap(c.id)}"><td>${img}<b>${echap(c.name)}</b><span class="sym">${echap(String(c.symbol).toUpperCase())}</span><span class="voir">${ouverte?"▲ fermer":"📈 historique"}</span></td>
         <td class="n"><b>${euro(c.current_price,dec)}</b></td>
         <td class="n ${classeVar(v24)}">${pct(v24)}</td><td class="n ${classeVar(v7)}">${pct(v7)}</td>
         <td>${mini((c.sparkline_in_7d||{}).price,v7>=0)}</td></tr>`;
     }).join("");
-    document.getElementById("cryptoInfo").textContent="mis à jour à "+new Date().toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})+" · toutes les minutes";
-  }catch(e){
-    if(!document.querySelector("#cryptos b")) document.getElementById("cryptos").innerHTML='<tr><td colspan="5" class="err">Les cryptos n\'ont pas pu être lues, nouvel essai dans une minute.</td></tr>';
-  }
+    brancherCryptos(); if(cryptoOuverte) ouvrirHisto();
 }
 
 // ---------- Mise en route ----------
@@ -226,6 +280,7 @@ function tout(){
   if(!window.BOURSE){ document.getElementById("cours").innerHTML='<p class="err">Les cours ne sont pas encore là.</p>'; return; }
   document.getElementById("maj").textContent="Actualités et cours lus à "+new Date(BOURSE.maj).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"});
   afficherActus(); afficherCours();
+  if(cryptoOuverte&&derniereListe.length) afficherCryptos();
 }
 async function enLigne(){
   try{

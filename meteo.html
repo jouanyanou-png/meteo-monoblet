@@ -80,6 +80,23 @@ body{margin:0;background:var(--bg);color:var(--fg);font-family:var(--font);font-
 .seul td.jour span{position:sticky;display:inline-block}
 #moyG{scrollbar-width:none}
 .seul .bloc{width:max-content}
+/* Sous les météos : carte de la mer et autre lieu */
+.bas{margin:34px auto 0;max-width:1100px}
+.bas h2{font-size:22px;margin:0 0 10px;color:#000066}
+.carte-mer{background:#fff;border-radius:14px;padding:12px;text-align:center}
+.carte-mer img{max-width:100%;height:auto;display:block;margin:0 auto;border-radius:6px}
+#lieuForm{display:flex;gap:8px;flex-wrap:wrap}
+#lieuTexte{flex:1;min-width:240px;font:18px system-ui,sans-serif;padding:12px 14px;border:2px solid #cbd5e1;border-radius:12px}
+#lieuTexte:focus{outline:none;border-color:#2563eb}
+#lieuForm button,#lieuChoix button{font:600 18px system-ui,sans-serif;border-radius:12px;cursor:pointer}
+#lieuForm button{background:#2563eb;color:#fff;border:0;padding:0 22px}
+#lieuChoix{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+#lieuChoix button{background:#fff;border:2px solid #cbd5e1;padding:8px 14px;font-weight:400;font-size:16px;color:#1f2937}
+#lieuChoix button:hover{border-color:#2563eb}
+#lieuResultat{margin-top:12px}
+.autre{display:flex;justify-content:center}
+.autre .bloc{width:max-content}
+.autre .defile{max-height:75vh}
 /* Look Meteociel (valeurs reprises de leur code) */
 table.mc{border-collapse:collapse;font-family:Verdana,Arial,Helvetica,sans-serif;font-size:12px;color:#000066;margin:0 auto;background:#fff}
 .mc td{border:1px solid #a0a0b0;padding:2px;white-space:nowrap}
@@ -109,6 +126,19 @@ table.mc{border-collapse:collapse;font-family:Verdana,Arial,Helvetica,sans-serif
     </div>
   </div>
   <div id="contenu"></div>
+  <section class="bas" id="mer" aria-labelledby="merTitre">
+    <h2 id="merTitre">Température de la mer</h2>
+    <div class="carte-mer">
+      <a href="https://www.meteociel.fr/accueil/sst.php" target="_blank" rel="noopener"><img id="merImg" referrerpolicy="no-referrer" alt="Carte des températures de la mer (Meteociel)"></a>
+      <div class="note" id="merNote">Chargement de la carte…</div>
+    </div>
+  </section>
+  <section class="bas" id="ailleurs" aria-labelledby="lieuTitre">
+    <h2 id="lieuTitre">La météo d'un autre lieu</h2>
+    <form id="lieuForm" role="search"><input id="lieuTexte" maxlength="80" autocomplete="off" placeholder="Tape une ville ou un village (ex. : Anduze, Lyon…)" aria-label="Ville ou village"><button>Chercher</button></form>
+    <div id="lieuChoix"></div>
+    <div id="lieuResultat"></div>
+  </section>
   <div class="liens">
     <a href="https://www.meteociel.fr/previsions/10265/monoblet.htm" target="_blank" rel="noopener">Meteociel</a>
     <a href="https://meteofrance.com/previsions-meteo-france/monoblet/30170" target="_blank" rel="noopener">Météo-France</a>
@@ -284,9 +314,9 @@ function familleCiel(c){
   if(c>=71&&c<=86) return 7; if(c>=95) return 8; return 2;
 }
 const CODE_FAMILLE=[0,2,3,45,61,63,65,71,95];
-function moyenneLignes(D){
+function moyenneLignes(D,liste){
   const parHeure={};
-  for(const [id] of SOURCES){
+  for(const [id] of (liste||SOURCES)){
     for(const l of ((D.sources[id]||{}).lignes||[])){
       (parHeure[l.t]=parHeure[l.t]||[]).push({id,...l});
     }
@@ -312,7 +342,7 @@ function moyenneLignes(D){
     const desaccordPluie=Math.min(pleut,sec);     // nombre de sites qui disent le contraire de la majorité
     const accord= ecartT<=3&&desaccordPluie==0 ? "oui" : ecartT<=5&&desaccordPluie<=1 ? "plutôt" : "non";
     lignes.push({t,temp:moy(temps),moy:moy(L.map(x=>x.moy)),raf:moy(rafs),pluie:moy(pluies),dir,code:CODE_FAMILLE[fam],
-      n:L.length,accord,detail:`Températures : ${temps.map(Math.round).join(" / ")} °C · ${pleut} site(s) annoncent de la pluie, ${sec} du sec`});
+      n:L.length,accord,detail:`Températures : ${temps.map(Math.round).join(" / ")} °C · ${pleut} météo(s) annoncent de la pluie, ${sec} du sec`});
   }
   return lignes;
 }
@@ -326,6 +356,14 @@ function v5(){
   let h=`<div class="barre4"><span>Moyenne de Meteociel, Météo-France, Météo Agricole et Météo Languedoc · lu à ${new Date(D.maj).toLocaleTimeString("fr-FR",{hour:"2-digit",minute:"2-digit"})}</span>
     <span><b style="background:#66FF66;padding:0 6px">oui</b> les sites sont d'accord · <b style="background:#FFFF09;padding:0 6px">plutôt</b> · <b style="background:#FF9900;padding:0 6px">non</b> pas d'accord : regarde les 4 tableaux</span></div>
     ${DEFS_ICONES}<div class="seul">`;
+  const c=tableMoyenne(L,4);
+  // 2 tableaux côte à côte : celui de droite est la suite de celui de gauche
+  return h+`<div class="bloc"><div class="bloc-titre">Moyenne des 4 météos<span>${Object.keys(parJour).length} jours</span></div><div class="defile" id="moyG">${c}</div></div>`+
+    `<div class="bloc"><div class="bloc-titre">Suite →<span>&nbsp;</span></div><div class="defile" id="moyD">${c}</div></div></div>`;
+}
+function tableMoyenne(L,total){
+  const parJour={}; L.forEach(l=>{const j=l.t.slice(0,10); parJour[j]=(parJour[j]||0)+1;});
+  const v5r=x=>x==null?"--":Math.round(x/5)*5;
   let c=`<table class="mc"><thead><tr class="tete"><td rowspan="2">Jour</td><td rowspan="2">Heure</td><td rowspan="2">Temp.</td><td colspan="3">Vent km/h</td><td rowspan="2">Pluie<br>sur 3h</td><td rowspan="2">Temps</td><td rowspan="2">D'accord ?</td><td rowspan="2" title="Nombre de sites qui prévoient cette heure">Sites</td></tr>
     <tr class="tete"><td>dir.</td><td>moy.</td><td>raf.</td></tr></thead><tbody>`;
   let prec="", n=-1;
@@ -342,12 +380,9 @@ function v5(){
       (cp?`<td class="c" style="background:${cp};color:${texteSur(cp)}">${x.pluie.toFixed(1)} mm</td>`:`<td class="c">--</td>`)+
       `<td class="ico">${icone(x.code,t.getHours())}</td>`+
       `<td class="c" style="background:${COULEUR_ACCORD[x.accord]};font-weight:bold" title="${x.detail}">${x.accord}</td>`+
-      `<td class="c">${x.n}/4</td></tr>`;
+      `<td class="c">${x.n}/${total}</td></tr>`;
   });
-  c+=`</tbody></table>`;
-  // 2 tableaux côte à côte : celui de droite est la suite de celui de gauche
-  return h+`<div class="bloc"><div class="bloc-titre">Moyenne des 4 météos<span>${Object.keys(parJour).length} jours</span></div><div class="defile" id="moyG">${c}</div></div>`+
-    `<div class="bloc"><div class="bloc-titre">Suite →<span>&nbsp;</span></div><div class="defile" id="moyD">${c}</div></div></div>`;
+  return c+`</tbody></table>`;
 }
 // la Moyenne : 2 tableaux centrés, aussi grands que possible, jusqu'au bas de l'écran
 function ajusterMoyenne(){
@@ -576,7 +611,72 @@ async function donneesEnLigne(){
     if(!window.DONNEES||d.maj>window.DONNEES.maj){window.DONNEES=d; afficher();}
   }catch(e){}
 }
-afficher(); donneesEnLigne(); setInterval(()=>{const c=document.getElementById("chat"); if(c&&c.classList.contains("ouvert")) donneesEnLigne(); else location.reload();},15*60*1000);
+afficher(); donneesEnLigne(); setInterval(()=>{const c=document.getElementById("chat"); if((c&&c.classList.contains("ouvert"))||window.scrollY>80) donneesEnLigne(); else location.reload();},15*60*1000);
+
+// ---------- Carte de la température de la mer (Meteociel la publie avec 1 ou 2 jours de retard) ----------
+(function(){
+  const img=document.getElementById("merImg"), note=document.getElementById("merNote"); let k=0;
+  const jour=k=>new Date(Date.now()-k*864e5);
+  const iso=d=>d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+  const essayer=()=>{
+    if(k>7){ img.style.display="none"; note.textContent="La carte n'a pas pu être chargée : clique ici pour l'ouvrir sur Meteociel."; return; }
+    img.src="https://www.meteociel.fr/obs/sst/"+iso(jour(k))+".gif";
+  };
+  img.onerror=()=>{k++; essayer();};
+  img.onload=()=>{note.textContent="Carte Meteociel du "+jour(k).toLocaleDateString("fr-FR",{weekday:"long",day:"numeric",month:"long"})+" · clique dessus pour l'ouvrir sur Meteociel";};
+  essayer();
+})();
+
+// ---------- La météo d'un autre lieu : même tableau, avec 4 modèles météo gratuits (Open-Meteo) ----------
+(function(){
+  const MODELES=[["meteofrance_seamless","Météo-France"],["ecmwf_ifs025","Européen"],["icon_seamless","Allemand"],["gfs_seamless","Américain"]];
+  const champ=document.getElementById("lieuTexte"), choix=document.getElementById("lieuChoix"), res=document.getElementById("lieuResultat");
+  const echap=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+  const nomLieu=l=>[l.name,l.admin2||l.admin1,l.country_code&&l.country_code!=="FR"?l.country:""].filter(Boolean).join(", ");
+  async function chercher(q){
+    q=q.trim(); if(!q) return;
+    choix.innerHTML=""; res.innerHTML='<p class="note">Je cherche…</p>';
+    try{
+      const r=await fetch("https://geocoding-api.open-meteo.com/v1/search?count=6&language=fr&format=json&name="+encodeURIComponent(q));
+      const L=((await r.json()).results)||[];
+      if(!L.length){ res.innerHTML='<p class="err">Je ne trouve pas ce lieu. Vérifie l\'orthographe.</p>'; return; }
+      if(L.length===1){ montrer(L[0]); return; }
+      res.innerHTML='<p class="note">Plusieurs lieux portent ce nom : clique sur le bon.</p>';
+      L.forEach(l=>{const b=document.createElement("button"); b.type="button";
+        b.textContent=nomLieu(l)+(l.postcodes&&l.postcodes[0]?" ("+l.postcodes[0]+")":"");
+        b.onclick=()=>{choix.innerHTML=""; montrer(l);}; choix.appendChild(b);});
+    }catch(e){ console.error(e); res.innerHTML='<p class="err">La recherche n\'a pas marché. Réessaie dans un moment.</p>'; }
+  }
+  async function montrer(l){
+    try{localStorage.setItem("autreLieu",JSON.stringify({name:l.name,admin1:l.admin1,admin2:l.admin2,country:l.country,country_code:l.country_code,latitude:l.latitude,longitude:l.longitude}))}catch(e){}
+    res.innerHTML=`<p class="note">Je regarde la météo de ${echap(nomLieu(l))}…</p>`;
+    try{
+      const u="https://api.open-meteo.com/v1/forecast?latitude="+l.latitude+"&longitude="+l.longitude+
+        "&hourly=temperature_2m,precipitation,weather_code,wind_speed_10m,wind_gusts_10m,wind_direction_10m"+
+        "&models="+MODELES.map(m=>m[0]).join(",")+"&timezone=Europe%2FParis&forecast_days=10";
+      const d=await (await fetch(u)).json(), H=d.hourly; if(!H) throw new Error("pas de données");
+      const maintenant=Date.now()-3*36e5, sources={};
+      for(const [m] of MODELES){
+        const v=k=>H[k+"_"+m]||[], T=v("temperature_2m"), P=v("precipitation");
+        const lignes=[];
+        H.time.forEach((t,i)=>{
+          if(+t.slice(11,13)%3!==1||new Date(t)<maintenant||T[i]==null) return;   // une ligne toutes les 3 h, comme les sites
+          const pl=[P[i],P[i-1],P[i-2]].filter(x=>x!=null);
+          lignes.push({t,temp:T[i],pluie:pl.length?pl.reduce((a,b)=>a+b,0):null,moy:v("wind_speed_10m")[i],raf:v("wind_gusts_10m")[i],dir:v("wind_direction_10m")[i],code:v("weather_code")[i]});
+        });
+        sources[m]={lignes};
+      }
+      const L=moyenneLignes({sources},MODELES);
+      if(!L.length) throw new Error("vide");
+      const nbJ=new Set(L.map(x=>x.t.slice(0,10))).size;
+      res.innerHTML=`<div class="barre4" style="margin-bottom:6px"><span>Moyenne de 4 modèles météo (Météo-France, européen, allemand, américain). Pour Monoblet, le tableau du haut lit les 4 sites.</span></div>
+        ${DEFS_ICONES}<div class="autre"><div class="bloc"><div class="bloc-titre">${echap(nomLieu(l))}<span>${nbJ} jours · <a href="#" id="lieuEffacer">effacer</a></span></div><div class="defile">${tableMoyenne(L,4)}</div></div></div>`;
+      document.getElementById("lieuEffacer").onclick=e=>{e.preventDefault(); res.innerHTML=""; champ.value=""; try{localStorage.removeItem("autreLieu")}catch(x){}};
+    }catch(e){ console.error(e); res.innerHTML='<p class="err">La météo de ce lieu n\'a pas pu être lue. Réessaie dans un moment.</p>'; }
+  }
+  document.getElementById("lieuForm").onsubmit=e=>{e.preventDefault(); chercher(champ.value);};
+  try{ const l=JSON.parse(localStorage.getItem("autreLieu")||"null"); if(l){ champ.value=l.name; montrer(l); } }catch(e){}
+})();
 </script>
 <!-- Petit assistant : on pose une question, il répond avec les 4 météos -->
 <style>

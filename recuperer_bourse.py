@@ -41,6 +41,25 @@ def yahoo(symbole):
     return sortie
 
 
+CRYPTOS = {"bitcoin": "BTC-EUR", "ripple": "XRP-EUR", "solana": "SOL-EUR", "dogecoin": "DOGE-EUR",
+           "ethereum": "ETH-EUR", "usd-coin": "USDC-EUR"}
+
+
+def historique(symbole):
+    """1 an jour par jour + 5 ans semaine par semaine (deja en euros)."""
+    sortie = {}
+    for nom, plage, pas in [("an", "1y", "1d"), ("cinq", "5y", "1wk")]:
+        d = json.loads(lire(f"https://query1.finance.yahoo.com/v8/finance/chart/{urllib.parse.quote(symbole)}?range={plage}&interval={pas}"))
+        res = d["chart"]["result"][0]
+        fermetures = res["indicators"]["quote"][0]["close"]
+        sortie[nom] = [[t, float(f"{c:.6g}")] for t, c in zip(res.get("timestamp", []), fermetures) if c is not None]
+    return sortie
+
+
+def cryptos():
+    return {nom: historique(sym) for nom, sym in CRYPTOS.items()}
+
+
 def actualites(recherche="Trump", nombre=12):
     rss = lire(f"https://www.bing.com/news/search?q={urllib.parse.quote(recherche)}&format=rss&setlang=fr&cc=FR&mkt=fr-FR")
     infos = []
@@ -70,7 +89,8 @@ def main():
     except Exception:
         avant = {}
     taches = [("djt", lambda: yahoo("DJT")), ("or", lambda: yahoo("GC=F")), ("argent", lambda: yahoo("SI=F")),
-              ("eurusd", lambda: yahoo("EURUSD=X")), ("actus", actualites)]
+              ("eurusd", lambda: yahoo("EURUSD=X")), ("actus", actualites),
+              ("cryptos", cryptos)]
     for nom, f in taches:
         try:
             try:
